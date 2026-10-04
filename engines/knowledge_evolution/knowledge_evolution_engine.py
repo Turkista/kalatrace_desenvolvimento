@@ -243,7 +243,70 @@ class KnowledgeEvolutionEngine:
         }
 
     # ==========================================================
-    # 16. ESTATÍSTICAS DO MOTOR
+    # 16. RESTAURAR / EXPORTAR ESTADO COMPLETO
+    # ==========================================================
+
+    def restore(self, snapshot: Dict[str, Any]) -> None:
+        """
+        Reconstrói o estado operacional do KEE a partir de um snapshot.
+
+        A restauração recompõe os componentes internos na mesma ordem
+        usada na operação normal e não gera novos eventos.
+        """
+        if not isinstance(snapshot, dict):
+            raise TypeError("O snapshot precisa ser um dicionário")
+
+        self._state_manager.restore({
+            "iec_states": snapshot.get("iec_states", {})
+        })
+
+        self.evolution_history = list(
+            snapshot.get("evolution_history", [])
+        )
+
+        conflicts = snapshot.get("conflicts", {})
+        if not isinstance(conflicts, dict):
+            raise ValueError("Snapshot de conflitos inválido")
+        self._conflict_solver.conflicts = dict(conflicts)
+
+        syntheses = snapshot.get("syntheses", {})
+        if not isinstance(syntheses, dict):
+            raise ValueError("Snapshot de sínteses inválido")
+        self._evidence_merger.syntheses = dict(syntheses)
+
+        self._conflict_solver._next_id = self._next_numeric_id(
+            self._conflict_solver.conflicts,
+            "CONFLICT-",
+        )
+        self._evidence_merger._next_id = self._next_numeric_id(
+            self._evidence_merger.syntheses,
+            "SYNTHESIS-",
+        )
+
+    @staticmethod
+    def _next_numeric_id(records: Dict[str, Any], prefix: str) -> int:
+        highest = 0
+        for record_id in records:
+            if not isinstance(record_id, str) or not record_id.startswith(prefix):
+                continue
+            try:
+                highest = max(highest, int(record_id[len(prefix):]))
+            except ValueError:
+                continue
+        return highest + 1
+
+    @classmethod
+    def from_dict(
+        cls,
+        snapshot: Dict[str, Any],
+        evidence_store: EvidenceStore,
+    ) -> "KnowledgeEvolutionEngine":
+        engine = cls(evidence_store)
+        engine.restore(snapshot)
+        return engine
+
+    # ==========================================================
+    # 17. ESTATÍSTICAS DO MOTOR
     # ==========================================================
 
     def stats(self) -> Dict[str, Any]:
@@ -259,7 +322,7 @@ class KnowledgeEvolutionEngine:
         }
 
     # ==========================================================
-    # 17. HEALTH CHECK
+    # 18. HEALTH CHECK
     # ==========================================================
 
     def health_check(self) -> Dict[str, Any]:
@@ -271,7 +334,7 @@ class KnowledgeEvolutionEngine:
         }
 
     # ==========================================================
-    # 18. LIMPAR ESTADO
+    # 19. LIMPAR ESTADO
     # ==========================================================
 
     def clear(self):
@@ -280,7 +343,7 @@ class KnowledgeEvolutionEngine:
         self.evolution_history.clear()
 
     # ==========================================================
-    # 19. DEBUG
+    # 20. DEBUG
     # ==========================================================
 
     def __repr__(self) -> str:
