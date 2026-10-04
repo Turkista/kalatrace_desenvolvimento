@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KALATRACE — Arquitetura Cognitiva para Governança do Conhecimento</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+:root{
+  --bg-page:#F1EFE8; --surface-1:#F8F7F3; --surface-2:#FFFFFF;
+  --border:#E4E1D8; --border-strong:#D3D1C7;
+  --text-primary:#2C2C2A; --text-secondary:#5F5E5A; --text-muted:#888780;
+  --navy:#0B2A52; --blue:#1769B0; --blue-soft:#E6F1FB;
+  --teal:#0F8F86; --teal-soft:#E1F5EE;
+  --purple:#534AB7; --purple-soft:#EEEDFE;
+  --coral:#993C1D; --coral-soft:#FAECE7;
+  --gold:#C9A46E; --gold-soft:#F0E6D2;
+  --success:#3B6D4F; --success-bg:#EAF3DE;
+  --warning:#8A5A00; --warning-bg:#FAEEDA;
+  --danger:#A33D2D; --danger-bg:#FCEBEB;
+  --radius:10px;
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bg-page);color:var(--text-primary);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:14px}.app{display:flex;min-height:100vh}
+.sidebar{width:236px;flex-shrink:0;background:var(--surface-1);border-right:.5px solid var(--border);padding:16px 12px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.brand{padding:2px 4px 15px;border-bottom:1px solid var(--border);margin-bottom:7px}.brand-logo{display:block;width:100%;height:116px;object-fit:contain;border-radius:10px;background:#fff}.brand-mark{display:none}.brand-name{display:none}.brand-sub{display:none}.pilot-logo{display:block;width:100%;height:72px;object-fit:contain;border-radius:8px;background:#fff;margin-bottom:9px}.pilot-card{margin-top:auto;background:#fff;border:1px solid var(--border);border-radius:10px;padding:9px} .pilot-title{font-weight:600;color:var(--navy);font-size:13px}.pilot-text{font-size:11px;color:var(--text-secondary);margin-top:3px}.pilot-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);display:inline-block;margin-right:5px}.brand-divider{height:1px;background:linear-gradient(90deg,transparent,var(--blue),transparent);margin-top:9px}
+.group-label{font-size:10px;color:var(--text-muted);padding:12px 8px 4px;text-transform:uppercase;letter-spacing:.08em}.nav-item{display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:8px;cursor:pointer;color:var(--text-secondary);font-size:13px;background:none;border:none;text-align:left;width:100%;font-family:inherit}.nav-item i{font-size:16px}.nav-item:hover{background:#fff}.nav-item.active{background:var(--navy);color:#fff;font-weight:500;box-shadow:0 2px 8px #0b2a5218}.nav-item.active i{color:#fff}
+.pilot-card{margin-top:auto;background:#fff;border:1px solid var(--border);border-radius:10px;padding:11px}.pilot-title{font-weight:600;color:var(--navy);font-size:13px}.pilot-text{font-size:11px;color:var(--text-secondary);margin-top:3px}.pilot-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);display:inline-block;margin-right:5px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}.topbar{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:.5px solid var(--border);background:#fff}.ctx{display:flex;align-items:center;gap:8px;font-size:13px}.ctx .muted{color:var(--text-muted)}.ctx .val{font-weight:600;color:var(--navy)}.icons{display:flex;align-items:center;gap:18px;color:var(--text-secondary)}.avatar{width:30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+.content{flex:1;padding:24px 28px 50px;overflow-y:auto}.screen{display:none}.screen.active{display:block;animation:fade .2s ease}@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;margin-bottom:18px}.page-brand-logo{width:210px;height:70px;object-fit:contain;border-radius:9px;background:#fff;flex-shrink:0}.page-brand-logo.kt{background:#fff}.greeting{font-size:22px;font-weight:600;color:var(--navy);margin:0}.greeting-sub{font-size:12px;color:var(--text-secondary);margin:4px 0 0}.page-title{font-size:22px;font-weight:600;color:var(--navy);margin:0}.page-sub{font-size:12px;color:var(--text-secondary);margin:4px 0 0}.head-actions{display:flex;gap:8px}button{background:#fff;border:1px solid var(--border-strong);border-radius:8px;padding:8px 13px;font-size:12.5px;font-family:inherit;cursor:pointer;color:var(--text-primary)}button:hover{background:var(--surface-1)}button.primary{background:var(--navy);border-color:var(--navy);color:#fff}button.primary:hover{background:#123c70}.brand-action{display:flex;align-items:center;gap:7px;background:#fff}.brand-action img{flex:0 0 auto}
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}.card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.card-title{font-size:14px;font-weight:600;color:var(--navy);margin:0}.muted{color:var(--text-muted)}.dim{color:var(--text-secondary)}.fs11{font-size:11px}.fs12{font-size:12px}.fs13{font-size:13px}.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}.metric{background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:14px}.metric-label{font-size:11px;color:var(--text-secondary)}.metric-value{font-size:25px;font-weight:600;color:var(--navy);margin-top:4px}.metric-delta{font-size:11px;color:var(--success);margin-top:4px}.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.row-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}.row-item:last-child{border-bottom:0}.row-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}.badge{font-size:10.5px;padding:3px 8px;border-radius:12px;white-space:nowrap}.success{background:var(--success-bg);color:var(--success)}.warning{background:var(--warning-bg);color:var(--warning)}.danger{background:var(--danger-bg);color:var(--danger)}.purple{background:var(--purple-soft);color:var(--purple)}.teal{background:var(--teal-soft);color:#085041}.blue{background:var(--blue-soft);color:#0C447C}
+.stepper{display:flex;gap:4px;flex-wrap:wrap}.step{font-size:10.5px;padding:4px 8px;border-radius:7px;background:var(--surface-1);color:var(--text-muted)}.step.done{background:var(--blue-soft);color:#0C447C}.step.now{background:var(--purple);color:#fff}.progress{height:6px;background:#E9E8E3;border-radius:4px;overflow:hidden}.progress>span{display:block;height:100%;background:var(--navy);border-radius:4px}.bar-row{display:grid;grid-template-columns:170px 1fr 52px;align-items:center;gap:10px;margin:10px 0;font-size:11px}
+/* MEDIKALAT forms */
+.phase-tabs{display:flex;gap:6px;margin-bottom:12px}.phase-tab{font-size:12px;font-weight:500;color:var(--text-secondary);padding:7px 14px;border-radius:8px;border:1px solid transparent;background:none}.phase-tab.active{background:var(--blue-soft);color:#0C447C;border-color:#C8DDF0}.phase-panel{display:none}.phase-panel.active{display:block}.form-mod{background:#fff;border:1px solid var(--border);border-radius:11px;padding:13px;display:flex;align-items:center;gap:12px;margin-bottom:8px}.form-mod .ic{width:36px;height:36px;border-radius:9px;background:var(--purple-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--purple)}.form-mod .t{font-size:13px;font-weight:600;margin:0;color:var(--navy)}.form-mod .d{font-size:11.5px;color:var(--text-secondary);margin:3px 0 0}.lock-warning{display:flex;align-items:center;gap:7px;background:var(--danger-bg);color:var(--danger);border-radius:7px;padding:7px 9px;font-size:10.5px;margin-top:7px}.transversal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.transversal-item{background:var(--surface-1);border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary)}
+/* detailed form panels from index.html */
+.tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);margin-bottom:14px}.tabs button{border:none;border-radius:0;border-bottom:2px solid transparent;padding:9px 8px;color:var(--text-muted);background:none}.tabs button.active{color:var(--navy);border-bottom-color:var(--gold);font-weight:600}.panel{display:none}.panel.active{display:block}.form-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px}.form-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:15px}.stage-pill{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#0C447C;background:var(--blue-soft);padding:4px 9px;border-radius:15px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.full{grid-column:1/-1}.field label{display:block;font-size:11.5px;color:var(--text-secondary);margin-bottom:5px}.req{color:var(--danger)}input,select,textarea{width:100%;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface-1);color:var(--text-primary)}input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);background:#fff}textarea{min-height:70px;resize:vertical}.actions{display:flex;align-items:center;gap:10px;margin-top:16px}.note{font-size:11.5px;color:var(--text-secondary);border-left:2px solid var(--gold);padding-left:12px;margin:0 0 15px;font-style:italic}.dose-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}.dose-grid input{font-size:12px;padding:7px}.reading-table{width:100%;border-collapse:collapse;font-size:11.5px}.reading-table th{background:var(--navy);color:#fff;text-align:left;padding:8px}.reading-table td{padding:7px 8px;border-bottom:1px solid var(--border)}.reading-table tr:nth-child(even) td{background:#FAF8F3}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:8px}.chart{height:180px;border:1px solid var(--border);border-radius:8px;background:linear-gradient(180deg,#fff,#F8F7F3);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px}
+.footer{text-align:center;color:var(--text-muted);font-size:11px;padding-top:20px;margin-top:30px;border-top:1px solid var(--border)}
+@media(max-width:900px){.sidebar{width:205px}.metric-grid{grid-template-columns:repeat(2,1fr)}.grid-2,.grid-3{grid-template-columns:1fr}.content{padding:20px}.form-grid{grid-template-columns:1fr}.dose-grid{grid-template-columns:repeat(3,1fr)}}@media(max-width:680px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:20;transform:translateX(-105%);transition:.2s}.sidebar.open{transform:none}.mobile-menu{display:block!important}.metric-grid{grid-template-columns:1fr}.topbar{padding:0 14px}.content{padding:18px 14px}.topbar .ctx .domain{display:none}.page-head{flex-direction:column}}
+.mobile-menu{display:none;border:0;background:none;font-size:20px;padding:4px}
+
+/* ===== ONBOARDING: splash / welcome / workspace / project-loading ===== */
+.ob-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 30% 20%, #16345F 0%, #0B2A52 45%, #071B36 100%);
+  color:#fff;opacity:1;transition:opacity .5s ease;overflow:auto}
+.ob-screen.hide{opacity:0;pointer-events:none}
+.ob-screen[hidden]{display:none}
+
+/* splash */
+#ob-splash .ob-splash-inner{display:flex;flex-direction:column;align-items:center;gap:22px}
+#ob-splash img{width:260px;height:260px;object-fit:contain;filter:drop-shadow(0 0 36px rgba(23,105,176,.55))}
+#ob-splash .ob-wordmark{font-size:15px;letter-spacing:7px;color:#CFE0F2;font-weight:600;margin-top:4px}
+.ob-loadbar{width:180px;height:2px;background:rgba(255,255,255,.14);border-radius:2px;overflow:hidden;margin-top:6px}
+.ob-loadbar .fill{height:100%;width:0%;background:linear-gradient(90deg,var(--teal),var(--blue));border-radius:2px;animation:ob-fill 1.9s ease forwards}
+@keyframes ob-fill{to{width:100%}}
+
+/* welcome */
+#ob-welcome{flex-direction:column;padding:48px 24px;text-align:center}
+.ob-welcome-head{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:38px}
+.ob-welcome-head img{width:280px;height:280px;object-fit:contain;filter:drop-shadow(0 0 30px rgba(23,105,176,.4));margin-bottom:4px}
+.ob-welcome-head h1{font-size:26px;margin:0;font-weight:600;letter-spacing:.5px}
+.ob-welcome-head p{margin:0;color:#B9C9DD;font-size:13.5px;max-width:480px;line-height:1.6}
+.ob-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:880px;margin-bottom:36px}
+.ob-card{width:250px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:14px;
+  padding:22px 20px;text-align:left;backdrop-filter:blur(6px)}
+.ob-card .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.ob-card .ic i{font-size:18px;color:#fff}
+.ob-card h3{font-size:14px;margin:0 0 6px;font-weight:600;color:#fff}
+.ob-card p{font-size:12px;color:#AFC0D6;margin:0;line-height:1.55}
+.ob-btn-primary{background:linear-gradient(90deg,var(--blue),var(--teal));color:#fff;border:none;padding:13px 34px;
+  border-radius:30px;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.3px;box-shadow:0 8px 24px rgba(23,105,176,.35)}
+.ob-btn-primary:hover{filter:brightness(1.08)}
+.ob-btn-primary:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+
+/* workspace */
+#ob-workspace{align-items:stretch;flex-direction:column;padding:0}
+.ob-ws-top{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;border-bottom:1px solid rgba(255,255,255,.1)}
+.ob-ws-top .who{display:flex;align-items:center;gap:10px}
+.ob-ws-top img{width:110px;height:110px;object-fit:contain}
+.ob-ws-top .who b{font-size:17px;letter-spacing:2.5px;color:#fff}
+.ob-ws-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 24px}
+.ob-ws-body h2{font-size:20px;margin:0 0 6px;font-weight:600}
+.ob-ws-body p.sub{color:#AFC0D6;font-size:13px;margin:0 0 30px}
+.ob-projects{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;max-width:960px}
+.ob-proj-card{width:210px;border-radius:16px;padding:20px 18px;cursor:pointer;position:relative;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);transition:transform .18s, background .18s}
+.ob-proj-card:hover{transform:translateY(-4px);background:rgba(255,255,255,.09)}
+.ob-proj-card.disabled{cursor:default;opacity:.55}
+.ob-proj-card.disabled:hover{transform:none;background:rgba(255,255,255,.05)}
+.ob-proj-card .dot{width:8px;height:8px;border-radius:50%;position:absolute;top:16px;right:16px}
+.ob-proj-card .mark{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-weight:700;font-size:14px;color:#fff}
+.ob-proj-card h4{font-size:14px;margin:0 0 4px;color:#fff}
+.ob-proj-card span{font-size:11px;color:#9FB2CB}
+.ob-dock{display:flex;gap:10px;align-items:center;justify-content:center;padding:16px 24px 26px;border-top:1px solid rgba(255,255,255,.08)}
+.ob-dock-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;padding:8px 14px;border-radius:12px}
+.ob-dock-item:hover{background:rgba(255,255,255,.08)}
+.ob-dock-item .mk{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.ob-dock-item span{font-size:10px;color:#AFC0D6}
+.ob-dock-add{border:1px dashed rgba(255,255,255,.3)}
+
+/* project loading */
+#ob-projload{flex-direction:column}
+.ob-pl-card{width:520px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:40px 36px;text-align:center}
+.ob-pl-card img{width:360px;object-fit:contain;margin-bottom:22px}
+.ob-pl-card h3{font-size:15px;margin:0 0 22px;color:#fff;font-weight:600;letter-spacing:.5px}
+.ob-checks{display:flex;flex-direction:column;gap:12px;text-align:left;margin-bottom:26px}
+.ob-check{display:flex;align-items:center;gap:10px;font-size:12.5px;color:#93A5BE}
+.ob-check .st{width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(255,255,255,.25);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.ob-check.done{color:#DCE7F5}
+.ob-check.done .st{background:var(--teal);border-color:var(--teal)}
+.ob-check.done .st i{font-size:10px;color:#fff}
+.ob-check .spin{width:10px;height:10px;border:2px solid rgba(255,255,255,.25);border-top-color:var(--blue);border-radius:50%;animation:ob-spin .7s linear infinite}
+@keyframes ob-spin{to{transform:rotate(360deg)}}
+
+.api-output{margin-top:12px;background:#0b1220;color:#d9e6f5;border-radius:10px;padding:12px;min-height:50px;max-height:320px;overflow:auto;font:11px/1.5 ui-monospace,monospace;white-space:pre-wrap}.api-endpoint-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px}.api-endpoint{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--surface-1);cursor:pointer}.api-endpoint:hover{border-color:var(--blue)}.api-endpoint .method{font-weight:800;margin-right:8px}
+</style>
+<style>
+#kt-auth-modal{position:fixed;inset:0;background:#0B2A5288;display:none;align-items:center;justify-content:center;z-index:9999}
+#kt-auth-modal .box{width:min(420px,92vw);background:#fff;border:1px solid var(--border);border-radius:14px;padding:22px;box-shadow:0 20px 60px #0002}
+#kt-auth-modal h3{margin:0 0 6px;color:var(--navy)}#kt-auth-modal p{font-size:12px;color:var(--text-secondary)}
+#kt-auth-modal label{display:block;font-size:11px;color:var(--text-secondary);margin:10px 0 5px}
+#kt-auth-modal input{background:#fff}#kt-auth-msg{font-size:11px;margin-top:9px;min-height:16px}
+.kt-api-status{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-secondary);margin-right:14px}
+.kt-api-dot{width:7px;height:7px;border-radius:50%;background:var(--warning)}
+.kt-api-dot.ok{background:var(--success)}.kt-api-dot.bad{background:var(--danger)}
+</style>
+</head>
+<body>
+
+<!-- 1. SPLASH -->
+<div class="ob-screen" id="ob-splash">
+  <div class="ob-splash-inner">
+    <img src="assets/asset_eb3da0044c.png" alt="KALATRACE">
+    <div class="ob-wordmark">KALATRACE</div>
+    <div class="ob-loadbar"><div class="fill"></div></div>
+  </div>
+</div>
+
+<!-- 2. WELCOME -->
+<div class="ob-screen" id="ob-welcome" hidden>
+  <div class="ob-welcome-head">
+    <img src="assets/asset_eb3da0044c.png" alt="KALATRACE">
+    <p>Plataforma universal de ecossistemas de conhecimento — infraestrutura cognitiva compartilhada, na qual cada projeto científico roda em seu próprio ambiente independente, preservando seus dados, regras e identidade.</p>
+  </div>
+  <div class="ob-cards">
+    <div class="ob-card"><div class="ic" style="background:var(--purple)"><i class="ti ti-shield-check"></i></div><h3>Governanca</h3><p>Auditoria, versionamento e confianca epistemologica aplicadas a todo conhecimento produzido, em qualquer projeto.</p></div>
+    <div class="ob-card"><div class="ic" style="background:var(--blue)"><i class="ti ti-apps"></i></div><h3>Projetos</h3><p>Cada aplicação científica — começando pelo MEDIKALAT e pelas que virão — utiliza a mesma infraestrutura cognitiva, mantendo seus próprios dados, regras e identidade.</p></div>
+    <div class="ob-card"><div class="ic" style="background:var(--teal)"><i class="ti ti-chart-arrows-vertical"></i></div><h3>Escalabilidade</h3><p>A mesma infraestrutura cognitiva sustenta o projeto piloto MEDIKALAT hoje e pode sustentar múltiplos ecossistemas de pesquisa amanhã.</p></div>
+  </div>
+  <button class="ob-btn-primary" onclick="obGoWorkspace()">Entrar na plataforma</button>
+</div>
+
+<!-- 3. WORKSPACE -->
+<div class="ob-screen" id="ob-workspace" hidden>
+  <div class="ob-ws-top">
+    <div class="who"><img src="assets/asset_eb3da0044c.png" alt="KALATRACE"></div>
+    <span class="fs11" style="color:#9FB2CB">Workspace</span>
+  </div>
+  <div class="ob-ws-body">
+    <h2>Seus ambientes</h2>
+    <p class="sub">Escolha uma aplicação científica para entrar. Cada projeto utiliza a mesma infraestrutura cognitiva do KALATRACE, sem deixar de possuir seu próprio ambiente, dados e regras.</p>
+    <div class="ob-projects">
+      <div class="ob-proj-card" onclick="obOpenProject('MEDIKALAT')">
+        <span class="dot" style="background:var(--teal)"></span>
+        <div class="mark" style="background:var(--blue)">M</div>
+        <h4>MEDIKALAT</h4><span>Ativo · bakuchiol + resveratrol</span>
+      </div>
+      <div class="ob-proj-card disabled">
+        <span class="dot" style="background:var(--gold)"></span>
+        <div class="mark" style="background:var(--purple)">S</div>
+        <h4>SkinMap</h4><span>Em construcao</span>
+      </div>
+      <div class="ob-proj-card disabled">
+        <span class="dot" style="background:var(--gold)"></span>
+        <div class="mark" style="background:var(--coral)">Y</div>
+        <h4>YANSIX</h4><span>Em construcao</span>
+      </div>
+      <div class="ob-proj-card disabled">
+        <span class="dot" style="background:var(--gold)"></span>
+        <div class="mark" style="background:var(--navy)">T</div>
+        <h4>Turkista</h4><span>Em construcao</span>
+      </div>
+      <div class="ob-proj-card" onclick="obOpenProject('ROBOTICA')"><span class="dot" style="background:var(--teal)"></span><div class="mark" style="background:var(--navy)">R</div><h4>Robótica</h4><span>Comandos, sensores e missões</span></div>
+      <div class="ob-proj-card" onclick="obOpenProject('AGENTE_LOCAL')"><span class="dot" style="background:var(--purple)"></span><div class="mark" style="background:var(--purple)">A</div><h4>Agente Local</h4><span>Controle e evolução do KALATRACE</span></div>
+    </div>
+  </div>
+  <div class="ob-dock">
+    <div class="ob-dock-item" onclick="obOpenProject('MEDIKALAT')"><div class="mk" style="background:var(--blue)">M</div><span>MEDIKALAT</span></div>
+    <div class="ob-dock-item"><div class="mk" style="background:var(--purple)">S</div><span>SkinMap</span></div>
+    <div class="ob-dock-item"><div class="mk" style="background:var(--coral)">Y</div><span>YANSIX</span></div>
+    <div class="ob-dock-item"><div class="mk" style="background:var(--navy)">T</div><span>Turkista</span></div>
+    <div class="ob-dock-item ob-dock-add"><div class="mk" style="background:rgba(255,255,255,.08)"><i class="ti ti-plus"></i></div><span>Novo projeto</span></div>
+  </div>
+</div>
+
+<!-- 4. PROJECT LOADING -->
+<div class="ob-screen" id="ob-projload" hidden>
+  <div class="ob-pl-card">
+    <img id="ob-project-logo" src="assets/asset_a148f7c508.png" alt="Projeto">
+    <h3 id="ob-project-loading-title">Carregando ambiente MEDIKALAT</h3>
+    <div class="ob-checks" id="ob-checks">
+      <div class="ob-check" data-step="0"><div class="st"><div class="spin"></div></div>Sincronizando dados</div>
+      <div class="ob-check" data-step="1"><div class="st"></div>Carregando ontologia do projeto</div>
+      <div class="ob-check" data-step="2"><div class="st"></div>Verificando governanca e permissoes</div>
+      <div class="ob-check" data-step="3"><div class="st"></div>Conectando ao motor cognitivo</div>
+    </div>
+    <button class="ob-btn-primary" id="ob-enter-btn" disabled onclick="obEnterProject()">Entrar no projeto</button>
+  </div>
+</div>
+
+<div class="app" id="app-root" style="display:none">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img class="brand-logo" alt="KALATRACE" src="assets/asset_1c97c1acac.png">
+      <div class="brand-divider"></div>
+    </div>
+    <div class="group-label">Cognição</div>
+    <button class="nav-item active" data-screen="hub"><i class="ti ti-hierarchy-2"></i>Hub cognitivo</button>
+    <button class="nav-item" data-screen="grafo"><i class="ti ti-affiliate"></i>Grafo</button>
+    <button class="nav-item" data-screen="hipoteses"><i class="ti ti-bulb"></i>Hipóteses</button>
+    <button class="nav-item" data-screen="evidencias"><i class="ti ti-file-search"></i>Evidências</button>
+    <button class="nav-item" data-screen="simulacao"><i class="ti ti-flask"></i>Simulação</button>
+    <button class="nav-item" data-screen="especialistas"><i class="ti ti-apps"></i>Especialistas</button>
+    <div class="group-label">Epistemologia</div>
+    <button class="nav-item" data-screen="governanca"><i class="ti ti-shield-check"></i>Governança</button>
+    <div class="group-label">Metacognição</div>
+    <button class="nav-item" data-screen="metacognicao"><i class="ti ti-eye"></i>Autoavaliação</button>
+    <div class="group-label">Infraestrutura</div>
+    <button class="nav-item" data-screen="modulos"><i class="ti ti-settings"></i>Módulos e status</button>
+    <div class="group-label">Projeto piloto</div>
+    <button class="nav-item" data-screen="medikalat"><i class="ti ti-clipboard-heart"></i>MEDIKALAT</button>
+    <div class="group-label">Projetos operacionais</div>
+    <button class="nav-item project-only project-robotica" data-screen="robotica" style="display:none"><i class="ti ti-robot"></i>Robótica</button>
+    <button class="nav-item project-only project-agent" data-screen="agente-local" style="display:none"><i class="ti ti-code"></i>Agente Local</button>
+    <button class="nav-item" data-screen="backend"><i class="ti ti-api"></i>Integrações do Backend</button>
+    <button class="nav-item" data-screen="control"><i class="ti ti-adjustments-horizontal"></i>KALATRACE Control</button>
+    <button class="nav-item" data-screen="workspace"><i class="ti ti-users"></i>Workspace</button>
+    <button class="nav-item" data-screen="projects"><i class="ti ti-folders"></i>Projetos</button>
+    <button class="nav-item" data-screen="cmc"><i class="ti ti-target-arrow"></i>Command & Mission Center</button>
+    <div class="group-label">Institucional</div>
+    <button class="nav-item" data-screen="organograma"><i class="ti ti-building-bank"></i>Organograma</button>
+    <div class="pilot-card"><img class="pilot-logo" alt="MEDIKALAT" src="assets/asset_82810e260e.png"><div class="pilot-title">MEDIKALAT</div><div class="pilot-text">Projeto científico · Caso piloto</div><div class="pilot-text"><span class="pilot-dot"></span>Ativo</div></div>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div class="ctx"><button class="mobile-menu" id="menuBtn"><i class="ti ti-menu-2"></i></button><span class="muted">Projeto</span><span class="val" id="active-project-name">MEDIKALAT</span><i class="ti ti-chevron-down"></i><span class="muted domain" style="margin-left:8px">Domínio</span><span class="val domain" id="active-project-domain">Biomedicina</span></div>
+      <div class="icons"><i class="ti ti-search"></i><i class="ti ti-bell"></i><div class="avatar">DM</div></div>
+    </header>
+    <div class="content">
+
+      <section class="screen active" id="screen-hub">
+        <div class="page-head"><div><h1 class="greeting">Olá Criadora Dani!</h1><p class="greeting-sub">O que vamos fazer hoje?</p></div><div class="head-actions"><button class="brand-action"><img src="assets/asset_3fc36edeb1.png" alt="" style="width:22px;height:22px;object-fit:contain;background:#fff;border-radius:4px"> Personalizar dashboard</button><button class="primary" onclick="showScreen('medikalat')"><i class="ti ti-plus"></i> Novo registro</button></div></div>
+        <div class="metric-grid"><div class="metric"><div class="metric-label">Nós no grafo</div><div class="metric-value">1.284</div><div class="metric-delta">↑ 20% vs. mês anterior</div></div><div class="metric"><div class="metric-label">Hipóteses ativas</div><div class="metric-value">37</div><div class="metric-delta">↑ 15% vs. mês anterior</div></div><div class="metric"><div class="metric-label">Lacunas abertas</div><div class="metric-value">12</div><div class="metric-delta">3 críticas</div></div><div class="metric"><div class="metric-label">Confiança média</div><div class="metric-value">0,78</div><div class="metric-delta">↑ 18% vs. mês anterior</div></div></div>
+        <div class="grid-2">
+          <div class="card"><div class="card-head"><h2 class="card-title">Atividades recentes</h2><button>Ver todas</button></div>
+            <div class="row-item"><div class="row-icon blue"><i class="ti ti-file-text"></i></div><div style="flex:1"><b>Relatório “Estudo Pré-clínico Fase 2” concluído</b><div class="fs11 muted">Projeto MEDIKALAT</div></div><span class="fs11 muted">Hoje, 09:42</span></div>
+            <div class="row-item"><div class="row-icon teal"><i class="ti ti-flask"></i></div><div style="flex:1"><b>Coleta de dados finalizada</b><div class="fs11 muted">Estudo BKCH-RESV-2026</div></div><span class="fs11 muted">Hoje, 08:15</span></div>
+            <div class="row-item"><div class="row-icon" style="background:var(--gold-soft);color:#8A5A00"><i class="ti ti-test-pipe"></i></div><div style="flex:1"><b>Nova amostra registrada</b><div class="fs11 muted">Código AM-2026-0457</div></div><span class="fs11 muted">Ontem, 17:33</span></div>
+            <div class="row-item"><div class="row-icon purple"><i class="ti ti-chart-line"></i></div><div style="flex:1"><b>Análise estatística concluída</b><div class="fs11 muted">Relativo ao estudo BKCH-RESV-2026</div></div><span class="fs11 muted">Ontem, 14:21</span></div>
+          </div>
+          <div class="card"><div class="card-head"><div style="display:flex;align-items:center;gap:10px"><h2 class="card-title">Progresso do projeto MEDIKALAT</h2></div><span class="badge teal">Piloto</span></div><div style="display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center"><div style="width:135px;height:135px;border-radius:50%;background:conic-gradient(var(--navy) 0 72%,#E8E8E4 72%);display:flex;align-items:center;justify-content:center"><div style="width:104px;height:104px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center"><b style="font-size:24px;color:var(--navy)">72%</b><span class="fs11 muted">progresso geral</span></div></div><div><div class="bar-row" style="grid-template-columns:150px 1fr 70px"><span>1. Descoberta e formulação</span><div class="progress"><span style="width:100%"></span></div><span class="success">Concluído</span></div><div class="bar-row" style="grid-template-columns:150px 1fr 70px"><span>2. Pré-clínico</span><div class="progress"><span style="width:72%"></span></div><span class="blue">Em andamento</span></div><div class="bar-row" style="grid-template-columns:150px 1fr 70px"><span>3. Análises e validação</span><div class="progress"><span style="width:22%"></span></div><span class="muted">Pendente</span></div><div class="bar-row" style="grid-template-columns:150px 1fr 70px"><span>4. Pré-clínico regulatório</span><div class="progress"><span style="width:0%"></span></div><span class="muted">Pendente</span></div></div></div><button class="primary" style="width:100%;margin-top:14px" onclick="showScreen('medikalat')">Ver detalhes do projeto <i class="ti ti-arrow-right"></i></button></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><div class="card-head"><h2 class="card-title">Estado cognitivo do ciclo</h2><span class="badge purple">IEC H-204</span></div><div class="stepper"><span class="step done">Novo conhecimento</span><span>›</span><span class="step done">Em contextualização</span><span>›</span><span class="step now">Em validação</span><span>›</span><span class="step">Em evolução</span><span>›</span><span class="step">Investigação contínua</span></div><p class="fs11 muted">Aquisição → Scientific Research Engine → Context Reconstruction → Validation → Knowledge Evolution → Knowledge Graph → Reasoning → Curiosity → Research Strategy.</p></div>
+          <div class="card"><div class="card-head"><h2 class="card-title">Reasoning trace recente</h2><span class="badge blue">Atualizado agora</span></div><div class="row-item"><div class="row-icon purple"><i class="ti ti-bulb"></i></div><div class="fs12" style="flex:1"><b>Bakuchiol + resveratrol</b> gera hipótese sobre <b>neurorregeneração medular</b></div><span class="badge success">Corroborado</span></div><div class="row-item"><div class="row-icon" style="background:var(--warning-bg);color:var(--warning)"><i class="ti ti-alert-triangle"></i></div><div class="fs12" style="flex:1">Curiosity Engine identificou lacuna em <b>mecanismo SIRT1 em tecido medular</b></div><span class="badge warning">Lacuna</span></div><div class="row-item"><div class="row-icon teal"><i class="ti ti-flask"></i></div><div class="fs12" style="flex:1">Simulation executou cenário “e se” para <b>dose-resposta EC50</b></div><span class="badge purple">Experimental</span></div></div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-grafo"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-affiliate"></i> Knowledge explorer</h1><p class="page-sub">Explore conexões entre moléculas, mecanismos, estudos, evidências e hipóteses.</p></div></div><div class="grid-2"><div class="card"><svg viewBox="0 0 500 290" style="width:100%;height:290px"><line x1="100" y1="145" x2="245" y2="80" stroke="#B8C0CA"/><line x1="100" y1="145" x2="245" y2="210" stroke="#B8C0CA"/><line x1="245" y1="80" x2="390" y2="70" stroke="#B8C0CA"/><line x1="245" y1="210" x2="390" y2="220" stroke="#B8C0CA"/><circle cx="100" cy="145" r="32" fill="#EEEDFE" stroke="#534AB7"/><text x="100" y="142" text-anchor="middle" font-size="11" fill="#26215C">Bakuchiol</text><text x="100" y="155" text-anchor="middle" font-size="8" fill="#534AB7">Molécula</text><circle cx="245" cy="80" r="29" fill="#E1F5EE" stroke="#0F6E56"/><text x="245" y="77" text-anchor="middle" font-size="11" fill="#085041">SIRT1</text><text x="245" y="90" text-anchor="middle" font-size="8" fill="#0F6E56">Mecanismo</text><circle cx="245" cy="210" r="29" fill="#FAECE7" stroke="#993C1D"/><text x="245" y="207" text-anchor="middle" font-size="10" fill="#712B13">Estudo</text><text x="245" y="219" text-anchor="middle" font-size="8" fill="#993C1D">cohort 2024</text><circle cx="390" cy="70" r="27" fill="#E1F5EE" stroke="#0F6E56"/><text x="390" y="67" text-anchor="middle" font-size="9" fill="#085041">Regen.</text><text x="390" y="79" text-anchor="middle" font-size="8" fill="#0F6E56">cutânea</text><circle cx="390" cy="220" r="27" fill="#F8F7F3" stroke="#B8B5AC"/><text x="390" y="217" text-anchor="middle" font-size="10" fill="#5F5E5A">H-118</text><text x="390" y="229" text-anchor="middle" font-size="8" fill="#888780">hipótese</text></svg></div><div><div class="card"><input placeholder="Buscar node, edge ou cluster"><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><span class="badge purple">Molécula</span><span class="badge teal">Mecanismo</span><span class="badge" style="background:var(--coral-soft);color:var(--coral)">Evidência</span></div></div><div class="card"><div class="card-title">Bakuchiol</div><p class="fs11 dim">Tipo: molécula · Estado: Conhecimento Consolidado · 4 conexões diretas (graph.stats())</p></div></div></div></section>
+
+      <section class="screen" id="screen-hipoteses"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-bulb"></i> Hypothesis workspace</h1><p class="page-sub">Catálogo e evolução das hipóteses científicas. <span class="fs11 dim">Modelo de dados existe em <code>knowledge/hypothesis.py</code>, mas a persistência ainda é placeholder — cards abaixo refletem o schema previsto, não uma API já ativa.</span></p></div><button class="primary"><i class="ti ti-plus"></i> Nova hipótese</button></div><div class="card"><div class="row-item"><div style="flex:1"><b>H-204 — Bakuchiol e resveratrol induzem neurorregeneração medular</b><div class="fs11 dim">E2 · S3 (escala manual, Doc. 32) · IEC.confidence 0.64 · 6 evidências vinculadas</div></div><span class="badge warning">Evidência Emergente</span></div><div class="row-item"><div style="flex:1"><b>H-118 — Resveratrol isolado é insuficiente para regeneração muscular</b><div class="fs11 dim">E3 · S2 (escala manual, Doc. 32) · IEC.confidence 0.41 · 9 evidências vinculadas</div></div><span class="badge danger">Conhecimento Contestado</span></div><div class="row-item"><div style="flex:1"><b>H-097 — Combinação dos dois ativos reduz dose efetiva necessária</b><div class="fs11 dim">E1 · S1 (escala manual, Doc. 32) · IEC.confidence 0.29 · 2 evidências vinculadas</div></div><span class="badge" style="background:var(--coral-soft);color:var(--coral)">Hipótese</span></div><div class="row-item"><div style="flex:1"><b>H-063 — Via SIRT1 é o mecanismo dominante de ação do bakuchiol</b><div class="fs11 dim">E4 · S3 (escala manual, Doc. 32) · IEC.confidence 0.87 · 14 evidências vinculadas</div></div><span class="badge success">Conhecimento Consolidado</span></div></div></section>
+
+      <section class="screen" id="screen-evidencias"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-file-search"></i> Evidence viewer</h1><p class="page-sub">Evidências vinculadas às hipóteses e aos registros do projeto. <span class="fs11 dim">Campos conforme <code>contracts/evidence_contract.py</code> — API real em <code>/evidence</code>.</span></p></div></div><div class="card"><div class="card-head"><h2 class="card-title">Ensaio in vitro — curva dose-resposta, lote L-042</h2><span class="badge purple">in_vitro</span></div><div class="row-item"><span class="muted" style="width:100px">evidence_level</span><span class="dim">moderate</span></div><div class="row-item"><span class="muted" style="width:100px">confidence</span><span class="dim">0.58</span></div><div class="row-item"><span class="muted" style="width:100px">quality_score</span><span class="dim">0.63</span></div><div class="row-item"><span class="muted" style="width:100px">Observação</span><span class="dim">6 pontos de concentração medidos, EC50 estimado por interpolação linear.</span></div><div class="row-item"><span class="muted" style="width:100px">Metodologia</span><span class="dim">Linhagem celular rastreada, passagem 4, protocolo padronizado.</span></div><div class="row-item"><span class="muted" style="width:100px">Interpretação</span><span class="dim">Sugere ativação dose-dependente da via SIRT1.</span></div><div class="row-item"><span class="muted" style="width:100px">Limitação</span><span class="dim">Leitura preliminar, requer regressão sigmoide completa antes de publicação.</span></div></div><div class="card"><div class="row-item"><i class="ti ti-flask"></i><span style="flex:1">Estudo cohort 2024 — exposição crônica</span><span class="badge success">observational_study · level: high</span></div><div class="row-item"><i class="ti ti-eye"></i><span style="flex:1">Relato observacional — regeneração cutânea em modelo animal</span><span class="badge warning">animal_study · level: low</span></div><div class="row-item"><i class="ti ti-cpu"></i><span style="flex:1">Simulação de docking molecular Bakuchiol-SIRT1</span><span class="badge" style="background:var(--coral-soft);color:var(--coral)">expert_opinion · level: very_low</span></div></div></section>
+
+      <section class="screen" id="screen-simulacao"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-flask"></i> Simulation interface</h1><p class="page-sub">Ambiente experimental isolado. Nada aqui altera o conhecimento real do grafo até ser promovido explicitamente. <span class="fs11 dim">simulation/ ainda é uma pasta vazia — esta tela mostra o comportamento previsto, não uma engine ativa.</span></p></div></div><div class="grid-2"><div class="card"><h2 class="card-title">Novo cenário “e se”</h2><textarea placeholder="Ex: e se a dose de bakuchiol fosse reduzida em 30%?" style="margin-top:10px"></textarea><select style="margin-top:8px"><option>Baseado em H-204</option><option>Baseado em H-063</option><option>Cenário livre</option></select><button class="primary" style="margin-top:8px">Rodar simulação</button></div><div class="card"><h2 class="card-title">Resultado do cenário</h2><div class="row-item"><span class="dim">EC50 projetado</span><b style="margin-left:auto">4.2 µM</b></div><div class="row-item"><span class="dim">Variação vs. base</span><b style="margin-left:auto;color:var(--warning)">-18%</b></div><div class="row-item"><span class="dim">Confiança do cenário</span><b style="margin-left:auto">0.52</b></div></div></div></section>
+
+      <section class="screen" id="screen-especialistas"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-apps"></i> Especialistas cognitivos</h1><p class="page-sub">Acionados sob demanda pelo Cognitive Orchestrator. <span class="fs11 dim">Todos os módulos abaixo existem hoje só como pasta reservada (<code>__init__.py</code> vazio) — nenhum tem lógica implementada.</span></p></div></div><div class="grid-3"><div class="card"><b>StarHouse</b><p class="fs12 dim">Observatório do conhecimento — mapeia áreas inexploradas.</p><span class="badge danger">Roadmap</span></div><div class="card"><b>Horse</b><p class="fs12 dim">Exploração não linear — busca caminhos cognitivos alternativos.</p><span class="badge danger">Roadmap</span></div><div class="card"><b>Discovery lab</b><p class="fs12 dim">Incubadora de hipóteses antes do grafo oficial.</p><span class="badge danger">Roadmap</span></div><div class="card"><b>Prediction</b><p class="fs12 dim">Análise preditiva de tendências.</p><span class="badge danger">Roadmap</span></div><div class="card"><b>Simulation</b><p class="fs12 dim">Laboratório de cenários “e se”.</p><span class="badge danger">Roadmap</span></div><div class="card"><b>Consensus</b><p class="fs12 dim">Avaliação de consenso e divergência científica.</p><span class="badge danger">Roadmap</span></div></div></section>
+
+      <section class="screen" id="screen-governanca"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-shield-check"></i> Epistemologia e governança</h1><p class="page-sub">Rastreabilidade, versões, conflitos e confiança do conhecimento.</p></div></div><div class="metric-grid"><div class="metric"><div class="metric-label">Eventos auditados</div><div class="metric-value">18.402</div></div><div class="metric"><div class="metric-label">Conflitos pendentes</div><div class="metric-value" style="color:var(--danger)">5</div></div><div class="metric"><div class="metric-label">Versões preservadas</div><div class="metric-value">4.918</div></div><div class="metric"><div class="metric-label">Confiança do sistema</div><div class="metric-value">0,81</div></div></div><div class="grid-2"><div class="card"><h2 class="card-title">Node: Bakuchiol ativa SIRT1</h2><div class="row-item"><span class="dim">Estado (curation.classify_knowledge_state)</span><b style="margin-left:auto">Conhecimento Consolidado</b></div><div class="row-item"><span class="dim">Maturity score (0–100)</span><b style="margin-left:auto">84</b></div><div class="row-item"><span class="dim">Origem</span><b style="margin-left:auto">Ensaio in vitro, lote L-042</b></div><div class="row-item"><span class="dim">Responsável</span><b style="margin-left:auto">D. Marcião Brito</b></div></div><div class="card"><h2 class="card-title">reliability_score() — fatores ponderados</h2><div class="bar-row"><span>methodological_quality (25%)</span><div class="progress"><span style="width:86%;background:var(--success)"></span></div><span>0,86</span></div><div class="bar-row"><span>reproducibility (20%)</span><div class="progress"><span style="width:71%;background:var(--gold)"></span></div><span>0,71</span></div><div class="bar-row"><span>statistical_consistency (10%)</span><div class="progress"><span style="width:79%;background:var(--success)"></span></div><span>0,79</span></div><div class="bar-row"><span>bias_risk_inverted (20%)</span><div class="progress"><span style="width:64%;background:var(--gold)"></span></div><span>0,64</span></div></div></div></section>
+
+      <section class="screen" id="screen-metacognicao"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-eye"></i> Metacognição</h1><p class="page-sub">O sistema observando a si mesmo. <span class="fs11 dim">metacognition/ tem só stubs (observer.py: 12 linhas, self_model.py: 46 linhas, metrics.py: 7 linhas; self_assessment, self_monitor e self_reflection estão vazios).</span></p></div></div><div class="grid-3"><div class="card"><b>Observer</b><p class="fs12 dim">Observa cada ciclo cognitivo em tempo real.</p><span class="badge warning">Stub · 12 linhas</span></div><div class="card"><b>Self monitor</b><p class="fs12 dim">Acompanha carga cognitiva e ritmo de investigação.</p><span class="badge danger">Roadmap</span></div><div class="card"><b>Self assessment</b><p class="fs12 dim">Avalia a qualidade das próprias conclusões.</p><span class="badge danger">Roadmap</span></div><div class="card"><b>Self reflection</b><p class="fs12 dim">Reavalia decisões à luz de novas evidências.</p><span class="badge danger">Roadmap</span></div><div class="card"><b>Self model</b><p class="fs12 dim">Modelo interno atualizado das capacidades.</p><span class="badge warning">Stub · 46 linhas</span></div><div class="card"><b>Metrics</b><p class="fs12 dim">Indicadores cognitivos consolidados.</p><span class="badge warning">Stub · 7 linhas</span></div></div><div class="card"><p class="fs11 muted">Exemplo ilustrativo do que essa tela mostrará quando Self reflection existir de fato</p><p style="font-style:italic">“A hipótese H-118, antes contestada, voltou a ganhar suporte após o estudo cohort 2025. Recomendo reabertura para reavaliação pelo Consensus.”</p></div></section>
+
+      <section class="screen" id="screen-modulos"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-settings"></i> Maturidade dos módulos</h1><p class="page-sub">Estado de implementação da infraestrutura do KALATRACE — distinguindo maturidade arquitetural, implementação inicial e componentes ainda em consolidação.</p></div></div><div class="card"><div class="row-item"><span class="badge success">Maduro</span><span style="flex:1"><b>Knowledge Graph</b> · graph/knowledge_graph.py + graph/base/ — núcleo estrutural implementado e testado.</span></div><div class="row-item"><span class="badge success">Maduro</span><span style="flex:1"><b>Validation Engine</b> · validation/validation_engine.py + evidence_validation_engine.py — validação estrutural e de evidências.</span></div><div class="row-item"><span class="badge success">Maduro</span><span style="flex:1"><b>Evidence Store</b> · storage/evidence_store.py — armazenamento estruturado de evidências.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>Reasoning Engine</b> · evidence_reasoning_engine.py (864 linhas) + componentes de inferência e regras.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>Curiosity Engine</b> · 764 linhas + detectores, ranking e geração de lacunas/perguntas.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>Knowledge Evolution Engine</b> · evolução, análise, resolução de conflitos, fusão de evidências e transição de estados.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>Curadoria</b> · maturity/reliability score, gaps, duplicidades e conflitos.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>API REST</b> · api/main.py e endpoints para conhecimento, grafo, evidências, validação, curadoria, aquisição e eventos.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>PARSI</b> · engine implementado e incluído na suíte de testes.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>StarHouse</b> · engine e orquestração implementados e testados.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>HORSE</b> · engine implementado e incluído na suíte de testes.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>Prediction</b> · engine + orchestrator implementados e testados.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>Simulation</b> · engine implementado e testado.</span></div><div class="row-item"><span class="badge warning">Inicial</span><span style="flex:1"><b>Discovery Lab</b> · implementação inicial disponível; ainda requer consolidação e integração ampliada.</span></div><div class="row-item"><span class="badge warning">Básico</span><span style="flex:1"><b>Sistema multiagente</b> · Research, Reasoning, Validation e Curiosity disponíveis; orquestração ainda em consolidação.</span></div><div class="row-item"><span class="badge warning">Básico</span><span style="flex:1"><b>Research Strategy Engine</b> · planner, prioritizer e strategy_generator implementados; maturidade ainda básica.</span></div><div class="row-item"><span class="badge danger">Inicial / Stub</span><span style="flex:1"><b>Metacognição</b> · componentes ainda não consolidados como subsistema operacional.</span></div><div class="row-item"><span class="badge danger">Placeholder</span><span style="flex:1"><b>Hypothesis Persistence</b> · knowledge/hypothesis.py e repository ainda sem implementação persistente completa.</span></div><div class="row-item"><span class="badge danger">Incompleto</span><span style="flex:1"><b>KnowledgeNode estrutural</b> · entidade conceitual definida na arquitetura, mas implementação dedicada ainda em consolidação.</span></div><div class="row-item"><span class="badge info">Fora da maturidade modular</span><span style="flex:1"><b>MEDIKALAT®</b> · projeto piloto/aplicação científica que utiliza o KALATRACE; não é módulo estrutural da plataforma.</span></div><div class="card" style="margin-top:14px;background:var(--surface-1)"><div class="card-title">Critério de leitura</div><p class="fs11 dim" style="margin:0">“Maduro” indica um componente estrutural com implementação substancial; “Implementado” indica funcionalidade existente ainda em evolução; “Básico/Inicial/Placeholder” indica componentes que precisam de consolidação. Implementação não significa validação científica automática.</p></div></div></section>
+
+      <section class="screen" id="screen-robotica">
+        <div class="page-head"><div><h1 class="page-title"><i class="ti ti-robot"></i> Projeto Robótica</h1><p class="page-sub">Ambiente separado para robótica: conexão, sensores, percepção, navegação, comandos e missões.</p></div><button class="primary" onclick="ktRoboticsRefresh()">Atualizar</button></div>
+        <div class="metric-grid" id="robotics-metrics"></div>
+        <div class="grid-2"><div class="card"><div class="card-head"><h2 class="card-title">Robô</h2></div><div class="form-grid"><div class="field"><label>Robot ID</label><input id="robot-id" value="robot-01"></div><div class="field"><label>Endpoint</label><input id="robot-endpoint" placeholder="http://localhost:9000"></div></div><div class="actions"><button class="primary" onclick="ktRobotConnect()">Conectar</button><button onclick="ktRobotDisconnect()">Desconectar</button></div><pre id="robot-status" class="api-output"></pre></div><div class="card"><div class="card-head"><h2 class="card-title">Nova missão</h2></div><div class="field"><label>Nome</label><input id="mission-name" placeholder="Missão de inspeção"></div><div class="field"><label>Objetivo / parâmetros JSON</label><textarea id="mission-payload">{"objective":"inspection"}</textarea></div><div class="actions"><button class="primary" onclick="ktStartMission()">Iniciar missão</button><button onclick="ktLoadMissions()">Listar missões</button></div><pre id="robot-missions" class="api-output"></pre></div></div>
+        <div class="grid-2"><div class="card"><div class="card-head"><h2 class="card-title">Comando</h2></div><div class="field"><label>Comando</label><input id="robot-command" placeholder="navigate"></div><div class="field"><label>Payload JSON</label><textarea id="robot-command-payload">{"target":"lab"}</textarea></div><button class="primary" onclick="ktExecuteRobotCommand()">Enviar comando</button><pre id="robot-command-result" class="api-output"></pre></div><div class="card"><div class="card-head"><h2 class="card-title">Telemetria</h2></div><div class="field"><label>Sensor JSON</label><textarea id="robot-sensor-payload">{"sensor":"imu","value":0}</textarea></div><div class="actions"><button onclick="ktSendRobotSensor()">Enviar sensor</button><button onclick="ktRefreshRobotStatus()">Status</button></div><pre id="robot-telemetry" class="api-output"></pre></div></div>
+        <div class="card"><div class="card-head"><h2 class="card-title">Command & Mission Center</h2></div><div class="grid-3"><button onclick="ktCmc('/cmc/stats')">Estatísticas</button><button onclick="ktCmc('/cmc/health')">Saúde</button><button onclick="ktCmc('/cmc/robots')">Robôs</button></div><pre id="cmc-output" class="api-output"></pre></div>
+      </section>
+      <section class="screen" id="screen-agente-local">
+        <div class="page-head"><div><h1 class="page-title"><i class="ti ti-code"></i> Agente Local</h1><p class="page-sub">Painel de controle do agente que irá trabalhar sobre o próprio KALATRACE. Aqui ficam as tarefas, prioridades, aprovações e resultados.</p></div><button class="primary" onclick="ktAgentRefresh()">Atualizar</button></div>
+        <div class="grid-3" id="agent-status-cards"></div>
+        <div class="card"><div class="card-head"><h2 class="card-title">Ciclo operacional</h2><span class="badge warning">Executor depende de conexão local</span></div><div class="grid-3"><div class="row-item"><b>1</b><span>Task</span></div><div class="row-item"><b>2</b><span>Planning</span></div><div class="row-item"><b>3</b><span>Approval</span></div><div class="row-item"><b>4</b><span>Execution</span></div><div class="row-item"><b>5</b><span>Tests</span></div><div class="row-item"><b>6</b><span>Validation / Evolution</span></div></div><pre id="agent-instance-output" class="api-output"></pre></div>
+        <div class="grid-2"><div class="card"><div class="card-head"><h2 class="card-title">Nova tarefa</h2></div><div class="field"><label>Título</label><input id="agent-task-title" placeholder="Integrar endpoint X ao frontend"></div><div class="field"><label>Descrição</label><textarea id="agent-task-description" placeholder="Objetivo, arquivos e critérios de aceite"></textarea></div><div class="form-grid"><div class="field"><label>Prioridade</label><input id="agent-task-priority" type="number" min="0" max="100" value="80"></div><div class="field"><label>Tipo</label><select id="agent-task-type"><option value="improvement">Melhoria</option><option value="bugfix">Correção</option><option value="integration">Integração</option><option value="test">Teste</option><option value="refactor">Refatoração</option></select></div></div><div class="field"><label>Execução segura</label><select id="agent-task-operation"><option value="">Somente planejamento</option><option value="pytest">Rodar pytest</option><option value="compileall">Validar Python</option><option value="node_check">Validar JavaScript</option><option value="code_dry_run">Simular alteração de código</option><option value="code_apply">Aplicar alteração de código</option></select></div><div class="field"><label>Alvo (opcional)</label><input id="agent-task-target" placeholder="tests/ ou index.html"></div><div class="field"><label>Especificação de código (JSON, para code_apply/code_dry_run)</label><textarea id="agent-task-code-spec" placeholder='{"operations":[{"action":"replace_text","path":"arquivo.py","old_text":"texto exato","new_text":"novo texto"}],"post_checks":[{"operation":"pytest","target":"tests/"}],"auto_rollback":true} or deixe vazio para operações de validação</textarea></div><button class="primary" onclick="ktAgentCreateTask()">Enviar para fila</button><span id="agent-task-msg"></span></div><div class="card"><div class="card-head"><h2 class="card-title">Princípio operacional</h2></div><div class="row-item"><b>1.</b><span>Recebe tarefa explícita.</span></div><div class="row-item"><b>2.</b><span>Planeja antes de modificar.</span></div><div class="row-item"><b>3.</b><span>Executa localmente.</span></div><div class="row-item"><b>4.</b><span>Roda testes.</span></div><div class="row-item"><b>5.</b><span>Registra resultado antes de promover.</span></div></div></div>
+        <div class="card"><div class="card-head"><h2 class="card-title">Fila do agente</h2><button onclick="ktAgentRefresh()">Recarregar</button></div><div class="table-wrap"><table class="reading-table"><thead><tr><th>Tarefa</th><th>Prioridade</th><th>Status</th><th>Ação</th></tr></thead><tbody id="agent-task-table"></tbody></table></div></div>
+      </section>
+      <section class="screen" id="screen-backend">
+        <div class="page-head"><div><h1 class="page-title"><i class="ti ti-api"></i> Integrações do Backend</h1><p class="page-sub">Todas as rotas publicadas pela API ficam acessíveis aqui. As telas específicas usam os mesmos endpoints; este painel cobre o restante.</p></div><button class="primary" onclick="ktLoadOpenApi()">Carregar API</button></div>
+        <div class="card"><div class="form-grid"><div class="field"><label>Método</label><select id="api-method"><option>GET</option><option>POST</option><option>PATCH</option><option>DELETE</option></select></div><div class="field"><label>Caminho</label><input id="api-path" value="/health"></div></div><div class="field"><label>JSON do corpo</label><textarea id="api-body">{}</textarea></div><div class="actions"><button class="primary" onclick="ktExecuteApiExplorer()">Executar</button><button onclick="ktLoadOpenApi()">Atualizar lista</button></div><pre id="api-explorer-output" class="api-output"></pre></div>
+        <div class="card"><div class="card-head"><h2 class="card-title">Endpoints disponíveis</h2><span id="api-endpoint-count" class="badge info"></span></div><div id="api-endpoint-list" class="api-endpoint-list"></div></div>
+      </section>
+
+      <section class="screen" id="screen-control">
+        <div class="page-head"><div><h1 class="page-title"><i class="ti ti-adjustments-horizontal"></i> KALATRACE Control</h1><p class="page-sub">Control plane da infraestrutura cognitiva: saúde, persistência, grafo e ciclo cognitivo.</p></div><button class="primary" onclick="ktControlRefresh()">Atualizar</button></div>
+        <div class="metric-grid" id="control-metrics"></div>
+        <div class="card"><div class="card-head"><h2 class="card-title">Arquitetura operacional</h2></div><p class="fs12 dim">Frontend → API → Supabase / Neo4j → Engines → Cognitive Cycle → projetos → CMC → Agente Local.</p><pre id="control-output" class="api-output"></pre></div>
+      </section>
+      <section class="screen" id="screen-workspace">
+        <div class="page-head"><div><h1 class="page-title"><i class="ti ti-users"></i> Workspace</h1><p class="page-sub">Identidade, sessão e governança de acesso do workspace.</p></div><button class="primary" onclick="ktWorkspaceRefresh()">Atualizar</button></div>
+        <div class="grid-2"><div class="card"><h2 class="card-title">Usuário atual</h2><div id="workspace-user" class="fs12 dim">Carregando...</div></div><div class="card"><h2 class="card-title">Roles e permissões</h2><div class="row-item"><b>Owner</b><span class="dim">workspace principal</span></div><div class="row-item"><b>Project access</b><span class="dim">controlado por membership/RLS</span></div><div class="row-item"><b>Agent control</b><span class="dim">sujeito a aprovação</span></div></div></div>
+        <div class="grid-2"><div class="card"><div class="card-head"><h2 class="card-title">Membros do projeto ativo</h2><button onclick="ktWorkspaceMembers()">Atualizar</button></div><div id="workspace-members" class="fs12 dim">Selecione um projeto para consultar membros.</div></div><div class="card"><div class="card-head"><h2 class="card-title">Convite</h2></div><div class="field"><label>E-mail</label><input id="workspace-invite-email" placeholder="colaborador@exemplo.com"></div><div class="field"><label>Role</label><select id="workspace-invite-role"><option value="viewer">Viewer</option><option value="researcher">Researcher</option><option value="developer">Developer</option><option value="operator">Operator</option><option value="administrator">Administrator</option></select></div><button class="primary" onclick="ktWorkspaceInvite()">Enviar convite</button><span id="workspace-invite-msg"></span></div></div>
+      </section>
+      <section class="screen" id="screen-projects">
+        <div class="page-head"><div><h1 class="page-title"><i class="ti ti-folders"></i> Projetos</h1><p class="page-sub">Crie e configure novos ambientes que utilizam a infraestrutura KALATRACE.</p></div><button class="primary" onclick="ktProjectNewForm()"><i class="ti ti-plus"></i> Novo projeto</button></div>
+        <div id="project-new-form" class="card" style="display:none"><div class="form-grid"><div class="field"><label>Nome</label><input id="new-project-name" placeholder="Meu novo projeto"></div><div class="field"><label>Slug</label><input id="new-project-slug" placeholder="meu-projeto"></div><div class="field"><label>Tipo</label><select id="new-project-type"><option value="custom">Personalizado</option><option value="scientific">Científico</option><option value="robotics">Robótica</option><option value="infrastructure">Infraestrutura</option></select></div><div class="field"><label>Domínio</label><input id="new-project-domain" placeholder="Ex.: IA, pesquisa, simulação"></div><div class="field full"><label>Descrição</label><textarea id="new-project-description"></textarea></div></div><div class="actions"><button class="primary" onclick="ktProjectCreate()">Criar projeto</button><button onclick="ktProjectNewForm(false)">Cancelar</button><span id="project-msg"></span></div></div>
+        <div class="card"><div class="card-head"><h2 class="card-title">Ambientes disponíveis</h2><button onclick="ktProjectsRender()">Recarregar</button></div><div id="project-list" class="grid-3"></div></div>
+        <div class="card"><div class="card-head"><h2 class="card-title">Templates de projeto</h2><button onclick="ktProjectTemplates()">Carregar</button></div><div id="project-templates" class="grid-3"><span class="muted">Escolha um template para iniciar um novo projeto.</span></div></div>
+      </section>
+      <section class="screen" id="screen-cmc">
+        <div class="page-head"><div><h1 class="page-title"><i class="ti ti-target-arrow"></i> Command & Mission Center</h1><p class="page-sub">Módulo transversal de orquestração de missões. Pode ser habilitado por qualquer projeto, não apenas Robótica.</p></div><button class="primary" onclick="ktCmcRefresh()">Atualizar</button></div>
+        <div class="grid-3" id="cmc-metrics"></div>
+        <div class="grid-2"><div class="card"><h2 class="card-title">Nova missão</h2><div class="field"><label>Nome</label><input id="cmc-mission-name" placeholder="Missão de evolução"></div><div class="field"><label>Objetivo</label><textarea id="cmc-mission-objective" placeholder="Objetivo da missão"></textarea></div><div class="field"><label>Projeto</label><select id="cmc-project-select"></select></div><button class="primary" onclick="ktCmcCreateMission()">Criar missão</button><span id="cmc-msg"></span></div><div class="card"><h2 class="card-title">Missões persistidas</h2><div id="cmc-mission-list" class="fs12 dim">Nenhuma missão.</div></div></div>
+      </section>
+
+      <!-- MEDIKALAT: HUB DE FORMULÁRIOS DA INDEX -->
+      <section class="screen" id="screen-medikalat"><div class="card" style="padding:9px 12px;margin-bottom:10px"><span id="kt-form-count" class="fs11 muted">0 registros persistidos</span></div>
+        <div class="page-head"><div><img class="page-brand-logo" src="assets/asset_a148f7c508.png" alt="MEDIKALAT"><h1 class="page-title" style="margin-top:10px"><i class="ti ti-clipboard-heart"></i> MEDIKALAT — formulários do piloto</h1><p class="page-sub">Projeto piloto e primeiro caso de uso real do KALATRACE · bakuchiol + resveratrol.</p></div><button class="primary" onclick="showPanel('lote')"><i class="ti ti-plus"></i> Novo registro</button></div>
+        <div class="tabs" id="formTabs"></div>
+        <div id="formPanels"></div>
+        <div class="form-card" id="readingPanel" style="display:none"><div class="form-head"><h2 class="card-title">Painel de leitura</h2><span class="stage-pill">Todas as etapas</span></div><div class="table-wrap"><table class="reading-table"><thead><tr><th>Registro</th><th>Projeto</th><th>Etapa</th><th>Status</th><th>Atualizado</th></tr></thead><tbody><tr><td>AM-2026-0457</td><td>MEDIKALAT</td><td>Pré-clínico</td><td><span class="badge success">Concluído</span></td><td>Hoje, 09:42</td></tr><tr><td>BKCH-RESV-2026</td><td>MEDIKALAT</td><td>Mestrado</td><td><span class="badge blue">Em andamento</span></td><td>Hoje, 08:15</td></tr><tr><td>TOX-AGUDO-2026</td><td>MEDIKALAT</td><td>Doutorado 1–2</td><td><span class="badge warning">Pendente</span></td><td>Ontem, 17:33</td></tr></tbody></table></div></div>
+      </section>
+
+      <section class="screen" id="screen-organograma">
+        <div class="page-head"><div><h1 class="page-title"><i class="ti ti-building-bank"></i> Arquitetura MEDIKALAT + KALATRACE</h1><p class="page-sub">Estrutura logica e visual do projeto — identidade institucional acima da arquitetura cognitiva.</p></div></div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">Objetivo geral</div>
+          <p class="fs12 dim" style="margin:0">Estruturar, organizar e proteger o desenvolvimento cientifico e tecnologico do projeto MEDIKALAT, garantindo uma base solida para o mestrado, doutorado e pos-doutorado, com integracao entre producao intelectual, pesquisa, dados clinicos e protecao de propriedade intelectual.</p>
+          <div class="card" style="margin-top:14px;background:var(--blue-soft);border:1px solid #CFE2F5">
+            <div class="card-title">Relação arquitetural</div>
+            <p class="fs12" style="margin:0 0 8px"><b>KALATRACE</b> é a infraestrutura cognitiva. <b>MEDIKALAT®</b> é o projeto piloto/aplicação científica que utiliza essa infraestrutura.</p>
+            <p class="fs11 dim" style="margin:0"><b>Fluxo:</b> KALATRACE → Knowledge Graph (KnowledgeNodes / KnowledgeEdges) → camada epistemológica (IEC / Evidências / proveniência) → aplicações e projetos → MEDIKALAT®.</p>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-title">Principios do sistema</div>
+            <div class="row-item"><span style="flex:1">Ciencia com proposito</span></div>
+            <div class="row-item"><span style="flex:1">Etica e responsabilidade</span></div>
+            <div class="row-item"><span style="flex:1">Rigor metodologico</span></div>
+            <div class="row-item"><span style="flex:1">Protecao do conhecimento</span></div>
+            <div class="row-item"><span style="flex:1">Inovacao com impacto</span></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Pilares do sistema</div>
+            <div class="row-item"><span style="flex:1">Ciencia</span><span class="fs11 dim">fundamentada e rigorosa</span></div>
+            <div class="row-item"><span style="flex:1">Tecnologia</span><span class="fs11 dim">sistemas inteligentes e seguros</span></div>
+            <div class="row-item"><span style="flex:1">Dados</span><span class="fs11 dim">confiaveis e rastreaveis</span></div>
+            <div class="row-item"><span style="flex:1">Inovacao</span><span class="fs11 dim">solucoes ineditas e disruptivas</span></div>
+            <div class="row-item"><span style="flex:1">Protecao</span><span class="fs11 dim">propriedade intelectual e etica</span></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">1. Memorial tecnico de criacao da denominacao MEDIKALAT</div>
+          <p class="fs11 dim" style="margin:0 0 10px">Estruturado em 4 livros (volumes complementares) que se alimentam mutuamente.</p>
+          <div class="grid-3">
+            <div class="card" style="background:var(--surface-1)"><b class="fs12">Livro 1 · Institucional</b><p class="fs11 dim">Publico — historia, fundamentacao cientifica, fundamentos filosoficos, visao do projeto.</p></div>
+            <div class="card" style="background:var(--surface-1)"><b class="fs12">Livro 2 · Dossie cientifico</b><p class="fs11 dim">Restrito — hipoteses cientificas, racional teorico e biologico, metodologia aplicada.</p></div>
+            <div class="card" style="background:var(--surface-1)"><b class="fs12">Livro 3 · Propriedade intelectual</b><p class="fs11 dim">Confidencial — analise de patenteabilidade, diferenciais tecnologicos, salvaguarda do conhecimento.</p></div>
+            <div class="card" style="background:var(--surface-1); grid-column:1 / -1"><b class="fs12">Livro 4 · Caderno do inventor</b><p class="fs11 dim">Pessoal — registro continuo do projeto, ideias, decisoes e versoes, diario tecnico do inventor.</p></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">2. KALATRACE — infraestrutura cognitiva para governança do conhecimento</div>
+          <p class="fs11 dim" style="margin:0 0 10px">Infraestrutura para organizar, relacionar, rastrear e governar conhecimento, evidências, dados e processos científicos — incluindo captura, padronização, armazenamento, proveniência, auditoria e evolução.</p>
+          <div class="stepper">
+            <span class="step done">Captacao de dados</span>
+            <span class="step done">Padronizacao</span>
+            <span class="step done">Armazenamento seguro</span>
+            <span class="step done">Monitoramento e analise</span>
+            <span class="step now">Relatorios e exportacao</span>
+          </div>
+          <p class="fs11 dim" style="margin-top:10px">O KALATRACE é uma arquitetura computacional de governança do conhecimento. Requisitos regulatórios, clínicos ou experimentais são tratados no contexto de cada aplicação e não definem a identidade estrutural da plataforma.</p>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">3. Guia unico da caminhada academica e cientifica</div>
+          <div class="grid-3">
+            <div class="card" style="background:var(--surface-1)"><b class="fs12">Pre-mestrado</b><p class="fs11 dim">Estruturacao do projeto, estudos iniciais, definicao de hipoteses e objetivos.</p></div>
+            <div class="card" style="background:var(--surface-1)"><b class="fs12">Mestrado</b><p class="fs11 dim">Pesquisa experimental, coleta de dados, analises e validacoes parciais.</p></div>
+            <div class="card" style="background:var(--surface-1)"><b class="fs12">Doutorado</b><p class="fs11 dim">Aprofundamento cientifico, testes avancados, publicacoes cientificas, inovacao.</p></div>
+            <div class="card" style="background:var(--surface-1)"><b class="fs12">Pos-doutorado</b><p class="fs11 dim">Expansao da pesquisa, aplicacoes tecnologicas, transferencia de tecnologia.</p></div>
+            <div class="card" style="background:var(--surface-1); grid-column:1 / -1"><b class="fs12">Legado e impacto</b><p class="fs11 dim">Contribuicao para a ciencia, solucoes inovadoras, transformacao na saude e na sociedade.</p></div>
+          </div>
+          <p class="fs11 dim" style="margin-top:10px">Principios da jornada: foco · disciplina · organizacao · etica · saude integral · inovacao · proposito.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title">Fluxo integrado do sistema</div>
+            <div class="stepper">
+              <span class="step">Ideia</span>
+              <span class="step">Registro (Livro IV)</span>
+              <span class="step">Estudo e planejamento (Livro II)</span>
+              <span class="step">Execucao e testes (KALATRACE)</span>
+              <span class="step">Analise e resultados (KALATRACE)</span>
+              <span class="step">Publicacao e protecao (Livros I e III)</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Resultados esperados</div>
+            <div class="row-item"><span style="flex:1">Producao cientifica de alto impacto</span></div>
+            <div class="row-item"><span style="flex:1">Inovacao tecnologica protegida</span></div>
+            <div class="row-item"><span style="flex:1">Dados clinicos organizados e seguros</span></div>
+            <div class="row-item"><span style="flex:1">Reconhecimento academico</span></div>
+            <div class="row-item"><span style="flex:1">Contribuicao para a saude global</span></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span><i class="ti ti-books"></i> Biblioteca de artigos — Livro 2 (Dossie cientifico)</span>
+            <button class="primary" onclick="document.getElementById('novoArtigoForm').style.display = document.getElementById('novoArtigoForm').style.display==='none'?'block':'none'"><i class="ti ti-plus"></i> Novo artigo</button>
+          </div>
+          <p class="fs11 dim" style="margin:0 0 6px"><b>Biblioteca particular da pesquisadora.</b> Artigos, manuscritos, rascunhos, revisões e documentos do Dossiê Científico podem ser registrados aqui, publicados ou não. DOI é opcional e só se aplica quando existir.</p><p class="fs11 dim" style="margin:0 0 10px">Esta biblioteca é uma camada documental privada: <b>não alimenta o Knowledge Graph automaticamente</b> e um manuscrito armazenado não é tratado como evidência validada. Futuramente, documentos selecionados poderão ser enviados explicitamente para análise epistemológica.</p>
+
+          <div id="novoArtigoForm" style="display:none;margin-bottom:14px;padding:12px;background:var(--surface-1);border:1px solid var(--border);border-radius:8px">
+            <div class="grid-2">
+              <div class="field"><label class="fs11 dim">Titulo do artigo</label><input type="text" placeholder="Ex: Bakuchiol e regeneracao cutanea: revisao sistematica"></div>
+              <div class="field"><label class="fs11 dim">Autores</label><input type="text" placeholder="Ex: Brito, D.Q.M. et al."></div>
+              <div class="field"><label class="fs11 dim">Periodico / veiculo</label><input type="text" placeholder="Nome do periodico ou congresso"></div>
+              <div class="field"><label class="fs11 dim">Ano</label><input type="text" placeholder="2026"></div>
+              <div class="field"><label class="fs11 dim">Etapa academica</label><select><option>Pre-mestrado</option><option>Mestrado</option><option>Doutorado</option><option>Pos-doutorado</option></select></div>
+              <div class="field"><label class="fs11 dim">Status</label><select><option>Rascunho</option><option>Submetido</option><option>Em revisao</option><option>Publicado</option></select></div>
+              <div class="field" style="grid-column:1/-1"><label class="fs11 dim">DOI / identificador externo (opcional)</label><input type="text" placeholder="Opcional — DOI, URL, preprint ou outro identificador"></div>
+              <div class="field" style="grid-column:1/-1">
+                <label class="fs11 dim">Arquivo do artigo (PDF) — armazenamento futuro</label>
+                <input type="file" accept="application/pdf" style="padding:8px;background:#fff;border:1px dashed var(--border-strong);border-radius:8px;font-size:12px">
+              </div>
+            </div>
+            <button class="primary" style="margin-top:8px"><i class="ti ti-device-floppy"></i> Salvar na biblioteca</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="reading-table">
+              <thead><tr><th>Titulo</th><th>Etapa</th><th>Periodico</th><th>Ano</th><th>Status</th><th>Arquivo</th></tr></thead>
+              <tbody>
+                <tr><td>Bakuchiol e Resveratrol na Regeneracao Muscular: Revisao Narrativa com Perspectiva Translacional</td><td>Pre-mestrado</td><td>—</td><td>2026</td><td><span class="badge warning">Rascunho</span></td><td><i class="ti ti-file-upload" style="color:var(--text-muted)" title="Anexar PDF"></i></td></tr>
+                <tr><td>Estudo Descritivo Comparativo de Produtos Cosmeticos a Base de Bakuchiol: Uma Revisao Narrativa com Analise de Mercado</td><td>Pre-mestrado</td><td>—</td><td>2026</td><td><span class="badge warning">Rascunho</span></td><td><i class="ti ti-file-upload" style="color:var(--text-muted)" title="Anexar PDF"></i></td></tr>
+                <tr><td>Potencial Regenerativo do Bakuchiol na Pele e no Tecido Muscular: Uma Revisao Integrativa dos Mecanismos Moleculares e Evidencias Clinicas</td><td>Pre-mestrado</td><td>—</td><td>2026</td><td><span class="badge warning">Rascunho</span></td><td><i class="ti ti-file-upload" style="color:var(--text-muted)" title="Anexar PDF"></i></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+    <footer class="footer">
+  </footer>
+  </main>
+</div>
+<script>
+const forms=[
+{id:'lote',label:'Caracterização de lote',stage:'Qualquer etapa',title:'Ficha de caracterização de lote (IFA)',fields:[['Responsável pelo preenchimento','text'],['Etapa do programa','select',['Mestrado','Doutorado Ano 1-2','Doutorado Ano 3-4','Pós-Doutorado']],['Ativo','select',['Bakuchiol','Resveratrol','Combinação Bakuchiol+Resveratrol']],['Número do lote','text'],['Fornecedor','text'],['Data de recebimento','date'],['Validade','date'],['Pureza (%)','number'],['Método analítico usado','text'],['Condição de armazenamento','text'],['Observações','textarea']]},
+{id:'dose',label:'Curva dose-resposta',stage:'Mestrado',title:'Protocolo de curva dose-resposta (EC50 / NOAEL)',custom:'dose'},
+{id:'celular',label:'Rastreabilidade celular',stage:'Mestrado',title:'Matriz de rastreabilidade de linhagem celular',fields:[['Responsável','text'],['Linhagem (ex.: HaCaT, HSMM, C2C12)','text'],['Origem / espécie','text'],['Fornecedor','text'],['Número da passagem','text'],['Data de descongelamento','date'],['Validade de uso','date'],['Condição de cultivo','text'],['Observações','textarea']]},
+{id:'bruta',label:'Coleta de dados brutos',stage:'Qualquer etapa',title:'Planilha de coleta de dados brutos',fields:[['Responsável','text'],['Etapa','select',['Mestrado','Doutorado Ano 1-2','Doutorado Ano 3-4','Pós-Doutorado']],['Alvo terapêutico','select',['Pele','Músculo','Cicatriz Perilesional','Medula/Neural','Toxicologia Sistêmica Integrada']],['Código do teste','text'],['Data de execução','date'],['Modelo utilizado','text'],['Ponto de coleta','text'],['Valor medido','text'],['Unidade','text'],['Equipamento usado','text'],['Observações','textarea']]},
+{id:'toxico',label:'Toxicologia animal',stage:'Doutorado Ano 1-2',title:'Registro de toxicologia sistêmica em animal',note:'Único bloco do programa com uso de animal vivo — exige código de protocolo CEUA aprovado.',fields:[['Responsável','text'],['Código do protocolo CEUA','text'],['Tipo de estudo','select',['Toxicidade aguda (dose única)','Toxicidade de dose repetida (28 dias)','Farmacocinética integrada']],['Espécie / linhagem animal','text'],['Número de animais por grupo','number'],['Dose administrada','text'],['Via de administração','text'],['Data de início','date'],['Data de fim','date'],['Achados clínicos','textarea'],['Achados histopatológicos','textarea'],['NOAEL sistêmico calculado','text'],['Observações','textarea']]},
+{id:'clinica',label:'Fase clínica humana',stage:'Doutorado Ano 3-4 / Pós-Doutorado',title:'Registro de visita — Fase I / Fase II / Fase III',fields:[['Responsável','text'],['Fase','select',['Fase I','Fase II','Fase III']],['Código do participante (anonimizado)','text'],['Grupo de randomização','select',['A — Bakuchiol isolado','B — Resveratrol isolado','C — Co-administração','D — Placebo','Não aplicável (Fase I)']],['Dose administrada','text'],['Data da visita','date'],['Exame realizado','text'],['Resultado do exame','textarea'],['Houve evento adverso?','select',['Não','Sim — leve','Sim — moderado','Sim — grave']],['Descrição do evento (se houver)','textarea'],['Observações','textarea']]},
+{id:'naoconf',label:'Não conformidades',stage:'Qualquer etapa',title:'Formulário de registro de não conformidade',fields:[['Responsável pelo registro','text'],['Etapa','select',['Mestrado','Doutorado Ano 1-2','Doutorado Ano 3-4','Pós-Doutorado']],['Teste relacionado','text'],['Descrição do problema','textarea'],['Causa identificada','textarea'],['Ação corretiva tomada','textarea'],['Data de resolução','date']]},
+{id:'relatorio',label:'Relatório final de teste',stage:'Qualquer etapa',title:'Relatório final consolidado de teste',fields:[['Responsável','text'],['Etapa','select',['Mestrado','Doutorado Ano 1-2','Doutorado Ano 3-4','Pós-Doutorado']],['Alvo terapêutico','select',['Pele','Músculo','Cicatriz Perilesional','Medula/Neural','Toxicologia Sistêmica Integrada']],['Código do teste','text'],['Resumo do objetivo','textarea'],['Resumo da metodologia','textarea'],['Principais resultados','textarea'],['EC50 / NOAEL final','text'],['Conclusão','textarea'],['Próxima etapa recomendada','textarea']]}
+];
+function inputField(label,type,options){let id='f_'+Math.random().toString(36).slice(2);let el=type==='select'?`<select><option value="">Selecione...</option>${options.map(x=>`<option>${x}</option>`).join('')}</select>`:type==='textarea'?'<textarea></textarea>':`<input type="${type}">`;return `<div class="field ${type==='textarea'?'full':''}"><label>${label}</label>${el}</div>`}
+function renderForm(f){if(f.custom==='dose')return `<div class="form-card"><div class="form-head"><h2 class="card-title">${f.title}</h2><span class="stage-pill">${f.stage}</span></div><p class="note">Registro estruturado para os pontos de concentração e resposta, com leitura de EC50 / NOAEL.</p><div class="form-grid"><div class="field"><label>Responsável</label><input></div><div class="field"><label>Ativo</label><select><option>Bakuchiol</option><option>Resveratrol</option><option>Combinação Bakuchiol+Resveratrol</option></select></div><div class="field"><label>Lote</label><input></div><div class="field"><label>Modelo celular</label><input></div><div class="field full"><label>Concentrações</label><div class="dose-grid">${[1,2,3,4,5,6].map(i=>`<input placeholder="Ponto ${i}">`).join('')}</div></div><div class="field full"><label>Respostas observadas</label><textarea placeholder="Informe os valores de resposta correspondentes aos pontos."></textarea></div><div class="field"><label>EC50 calculado</label><input></div><div class="field"><label>NOAEL</label><input></div></div><div class="actions"><button class="primary" onclick="saveDemo(this)">Salvar registro</button><span class="msg"></span></div></div>`;return `<div class="form-card"><div class="form-head"><h2 class="card-title">${f.title}</h2><span class="stage-pill">${f.stage}</span></div>${f.note?`<p class="note">${f.note}</p>`:''}<div class="form-grid">${f.fields.map((x,i)=>inputField(x[0],x[1],x[2]||[])).join('')}</div><div class="actions"><button class="primary" onclick="saveDemo(this)">Salvar registro</button><button type="button" onclick="clearForm(this)">Limpar</button><span class="msg"></span></div></div>`}
+const formTabs=document.getElementById('formTabs'),formPanels=document.getElementById('formPanels');forms.forEach((f,i)=>{let b=document.createElement('button');b.textContent=f.label;b.dataset.id=f.id;b.className=i===0?'active':'';b.onclick=()=>showPanel(f.id);formTabs.appendChild(b);let p=document.createElement('section');p.className='panel'+(i===0?' active':'');p.id='panel-'+f.id;p.innerHTML=renderForm(f);formPanels.appendChild(p)});let rb=document.createElement('button');rb.textContent='Painel de leitura';rb.dataset.id='reading';rb.onclick=()=>showPanel('reading');formTabs.appendChild(rb);
+function showPanel(id){document.querySelectorAll('#formTabs button').forEach(b=>b.classList.toggle('active',b.dataset.id===id));document.querySelectorAll('#formPanels .panel').forEach(p=>p.classList.remove('active'));document.getElementById('readingPanel').style.display=id==='reading'?'block':'none';if(id!=='reading')document.getElementById('panel-'+id).classList.add('active');}
+const KT_API_BASE = (window.KALATRACE_API_BASE || 'http://127.0.0.1:8000').replace(/\/$/, '');
+function ktToken(){return sessionStorage.getItem('kalatrace_access_token')||''}
+async function ktApi(path, options={}){
+  const headers=Object.assign({'Content-Type':'application/json'},options.headers||{});
+  const token=ktToken(); if(token) headers.Authorization='Bearer '+token;
+  const res=await fetch(KT_API_BASE+path,{...options,headers});
+  const body=await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(body.detail||body.message||('HTTP '+res.status));
+  return body;
+}
+function ktOpenAuth(message=''){const modal=document.getElementById('kt-auth-modal');modal.style.display='flex';document.getElementById('kt-auth-msg').textContent=message;document.getElementById('kt-auth-email').focus()}
+function ktCloseAuth(){document.getElementById('kt-auth-modal').style.display='none'}
+async function ktLogin(){
+  const msg=document.getElementById('kt-auth-msg');msg.textContent='Autenticando...';
+  try{const data=await ktApi('/auth/login',{method:'POST',body:JSON.stringify({email:document.getElementById('kt-auth-email').value,password:document.getElementById('kt-auth-password').value})});
+    const token=data.access_token||data.session?.access_token;if(!token)throw new Error('A API não retornou access token.');
+    sessionStorage.setItem('kalatrace_access_token',token);ktCloseAuth();await ktRefreshBackendStatus();
+  }catch(e){msg.textContent=e.message;msg.style.color='var(--danger)'}
+}
+document.getElementById('kt-auth-submit').onclick=ktLogin;document.getElementById('kt-auth-cancel').onclick=ktCloseAuth;
+async function ktEnsureAuth(){if(ktToken()){try{await ktApi('/auth/me');return true}catch(e){sessionStorage.removeItem('kalatrace_access_token')}}ktOpenAuth();return false}
+function ktFormData(card){const data={};card.querySelectorAll('.field').forEach(field=>{const label=field.querySelector('label')?.textContent?.trim();if(!label)return;const controls=field.querySelectorAll('input,select,textarea');if(controls.length===1)data[label]=controls[0].value;else if(controls.length>1)data[label]=Array.from(controls).map(x=>x.value)});return data}
+async function saveDemo(btn){
+  const card=btn.closest('.form-card');const msg=card.querySelector('.msg');const panel=card.closest('.panel');const formId=panel?.id?.replace(/^panel-/,'')||'unknown';
+  if(!(await ktEnsureAuth())) return;
+  msg.textContent='Salvando no Supabase...';msg.style.color='var(--text-secondary)';btn.disabled=true;
+  try{const result=await ktApi('/research/forms',{method:'POST',body:JSON.stringify({form_type:formId,data:ktFormData(card),status:'submitted',project_id:window.KT_ACTIVE_PROJECT_ID||null})});
+    msg.textContent='Registro salvo no Supabase.';msg.style.color='var(--success)';card.dataset.recordId=result.record?.id||'';
+  }catch(e){msg.textContent='Falha ao salvar: '+e.message;msg.style.color='var(--danger)'}finally{btn.disabled=false}
+}
+async function ktLoadResearchForms(){
+  if(!ktToken())return;try{const data=await ktApi('/research/forms?limit=100');const records=data.records||[];const el=document.getElementById('kt-form-count');if(el)el.textContent=records.length+' registros persistidos';}catch(e){}
+}
+async function ktRefreshBackendStatus(){
+  let ok=false,neo=false;try{const h=await ktApi('/persistence/health');ok=!!h.supabase?.connected;neo=!!h.neo4j?.connected}catch(e){}
+  let el=document.getElementById('kt-api-status');if(!el){el=document.createElement('span');el.id='kt-api-status';el.className='kt-api-status';const icons=document.querySelector('.icons');if(icons)icons.prepend(el)}
+  el.innerHTML='<span class="kt-api-dot '+(ok?'ok':'bad')+'"></span> API '+(ok?'online':'offline')+' · Neo4j '+(neo?'online':'offline');
+}
+function clearForm(btn){btn.closest('.form-card').querySelectorAll('input,select,textarea').forEach(x=>x.value='')}
+function showScreen(id){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');document.querySelector('.content').scrollTop=0;document.getElementById('sidebar').classList.remove('open')}
+document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>showScreen(n.dataset.screen)));document.getElementById('menuBtn').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
+</script>
+<div id="kt-auth-modal">
+  <div class="box">
+    <h3>Entrar no KALATRACE</h3>
+    <p>A interface agora usa a API real e a persistência protegida pelo Supabase Auth.</p>
+    <label>E-mail</label><input id="kt-auth-email" type="email" autocomplete="username">
+    <label>Senha</label><input id="kt-auth-password" type="password" autocomplete="current-password">
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="primary" id="kt-auth-submit">Entrar</button><button id="kt-auth-cancel">Cancelar</button></div>
+    <div id="kt-auth-msg"></div>
+  </div>
+</div>
+<script>
+window.KT_PROJECTS=[];window.KT_ACTIVE_PROJECT='medikalat';window.KT_ACTIVE_PROJECT_ID=null;window.KT_ACTIVE_PROJECT_META={};
+async function ktLoadProjects(){try{const d=await ktApi('/projects');window.KT_PROJECTS=d.projects||[];return window.KT_PROJECTS}catch(e){return []}}
+function ktSelectProject(slug){const p=window.KT_PROJECTS.find(x=>x.slug===slug)||{slug:slug,name:slug,domain:'KALATRACE'};window.KT_ACTIVE_PROJECT=p.slug;window.KT_ACTIVE_PROJECT_ID=p.id||null;window.KT_ACTIVE_PROJECT_META=p;const n=document.getElementById('active-project-name');if(n)n.textContent=p.name;const d=document.getElementById('active-project-domain');if(d)d.textContent=p.domain||'KALATRACE';document.querySelectorAll('.project-only').forEach(x=>x.style.display='none');if(p.slug==='robotica')document.querySelectorAll('.project-robotica').forEach(x=>x.style.display='flex');if(p.slug==='agente-local')document.querySelectorAll('.project-agent').forEach(x=>x.style.display='flex');const med=document.querySelector('[data-screen="medikalat"]');if(med)med.style.display=p.slug==='medikalat'?'flex':'none';if(p.slug==='robotica')showScreen('robotica');else if(p.slug==='agente-local')showScreen('agente-local');else showScreen('hub');}
+function obFade(hideId, showId, cb){
+  var h = document.getElementById(hideId);
+  var s = document.getElementById(showId);
+  h.classList.add('hide');
+  setTimeout(function(){
+    h.hidden = true; h.classList.remove('hide');
+    s.hidden = false;
+    if(cb) cb();
+  }, 480);
+}
+// 1 -> 2 : splash auto-advances
+setTimeout(function(){ obFade('ob-splash','ob-welcome'); }, 2200);
+
+// 2 -> 3
+function obGoWorkspace(){ obFade('ob-welcome','ob-workspace'); }
+
+// 3 -> 4
+function obOpenProject(name){
+  window.KT_SELECTED_PROJECT=name==='ROBOTICA'?'robotica':(name==='AGENTE_LOCAL'?'agente-local':'medikalat');
+  const p=(window.KT_PROJECTS||[]).find(x=>x.slug===window.KT_SELECTED_PROJECT);
+  const t=document.getElementById('ob-project-loading-title');if(t)t.textContent='Carregando ambiente '+(p?.name||name);
+  obFade('ob-workspace','ob-projload',function(){obRunProjectChecks();});
+}
+
+function obRunProjectChecks(){
+  var checks = document.querySelectorAll('#ob-checks .ob-check');
+  var btn = document.getElementById('ob-enter-btn');
+  btn.disabled = true;
+  checks.forEach(function(c){ c.classList.remove('done'); c.querySelector('.st').innerHTML=''; });
+  var i = 0;
+  function step(){
+    if(i>0){
+      var prev = checks[i-1];
+      prev.classList.add('done');
+      prev.querySelector('.st').innerHTML = '<i class="ti ti-check"></i>';
+    }
+    if(i < checks.length){
+      if(i < checks.length){ checks[i].querySelector('.st').innerHTML = '<div class="spin"></div>'; }
+      i++;
+      setTimeout(step, 650);
+    } else {
+      btn.disabled = false;
+    }
+  }
+  step();
+}
+
+// 4 -> app
+async function obEnterProject(){
+  if(!(await ktEnsureAuth())) return;
+  await ktLoadProjects();
+  ktSelectProject(window.KT_SELECTED_PROJECT||'medikalat');
+  document.getElementById('ob-projload').classList.add('hide');
+  setTimeout(function(){
+    document.getElementById('ob-projload').hidden = true;
+    document.getElementById('app-root').style.display = '';
+    ktRefreshBackendStatus();
+    ktLoadResearchForms();
+  }, 480);
+}
+</script>
+<script>
+(async function(){
+  if(ktToken()){await ktLoadProjects();await ktRefreshBackendStatus();}
+  const graphScreen=document.getElementById('screen-grafo');
+  if(graphScreen){const btn=document.createElement('button');btn.className='primary';btn.textContent='Atualizar grafo real';btn.onclick=async()=>{try{const d=await ktApi('/neo4j/graph');const b=graphScreen.querySelector('.page-head');let m=document.getElementById('kt-graph-sync');if(!m){m=document.createElement('span');m.id='kt-graph-sync';m.className='badge success';b.querySelector('.page-title').append(' ');b.querySelector('.page-title').appendChild(m)}m.textContent='Neo4j: '+(d.nodes?.length||0)+' nós · '+(d.edges?.length||0)+' relações'}catch(e){alert('Não foi possível consultar o Neo4j: '+e.message)}};graphScreen.querySelector('.page-head')?.appendChild(btn);}
+})();
+</script><script>
+async function ktRoboticsCall(path,method='POST',body){return ktApi(path,{method,body:body===undefined?undefined:JSON.stringify(body)})}
+async function ktRobotConnect(){try{const r=await ktRoboticsCall('/robotics/connect','POST',{robot_id:document.getElementById('robot-id').value,endpoint:document.getElementById('robot-endpoint').value});document.getElementById('robot-status').textContent=JSON.stringify(r,null,2);await ktRefreshRobotStatus()}catch(e){document.getElementById('robot-status').textContent=e.message}}
+async function ktRobotDisconnect(){try{const r=await ktRoboticsCall('/robotics/disconnect','POST',{robot_id:document.getElementById('robot-id').value});document.getElementById('robot-status').textContent=JSON.stringify(r,null,2)}catch(e){document.getElementById('robot-status').textContent=e.message}}
+async function ktRefreshRobotStatus(){try{const r=await ktApi('/robotics/'+encodeURIComponent(document.getElementById('robot-id').value));document.getElementById('robot-status').textContent=JSON.stringify(r,null,2)}catch(e){document.getElementById('robot-status').textContent=e.message}}
+async function ktRoboticsRefresh(){try{const r=await ktApi('/robotics/status');document.getElementById('robotics-metrics').innerHTML=Object.entries(r||{}).slice(0,6).map(([k,v])=>`<div class="metric"><div class="metric-label">${k}</div><div class="metric-value" style="font-size:18px">${typeof v==='object'?JSON.stringify(v):v}</div></div>`).join('');await ktRefreshRobotStatus();await ktLoadMissions()}catch(e){document.getElementById('robot-status').textContent=e.message}}
+async function ktStartMission(){try{const p=JSON.parse(document.getElementById('mission-payload').value||'{}');p.name=document.getElementById('mission-name').value;p.robot_id=document.getElementById('robot-id').value;document.getElementById('robot-missions').textContent=JSON.stringify(await ktRoboticsCall('/robotics/mission/start','POST',p),null,2)}catch(e){document.getElementById('robot-missions').textContent=e.message}}
+async function ktLoadMissions(){try{document.getElementById('robot-missions').textContent=JSON.stringify(await ktApi('/cmc/missions'),null,2)}catch(e){document.getElementById('robot-missions').textContent=e.message}}
+async function ktExecuteRobotCommand(){try{const p=JSON.parse(document.getElementById('robot-command-payload').value||'{}');p.command=document.getElementById('robot-command').value;p.robot_id=document.getElementById('robot-id').value;document.getElementById('robot-command-result').textContent=JSON.stringify(await ktApi('/cmc/commands/execute',{method:'POST',body:JSON.stringify(p)}),null,2)}catch(e){document.getElementById('robot-command-result').textContent=e.message}}
+async function ktSendRobotSensor(){try{document.getElementById('robot-telemetry').textContent=JSON.stringify(await ktRoboticsCall('/robotics/sensor','POST',JSON.parse(document.getElementById('robot-sensor-payload').value||'{}')),null,2)}catch(e){document.getElementById('robot-telemetry').textContent=e.message}}
+async function ktCmc(path){try{document.getElementById('cmc-output').textContent=JSON.stringify(await ktApi(path),null,2)}catch(e){document.getElementById('cmc-output').textContent=e.message}}
+async function ktAgentRefresh(){try{const st=await ktApi('/agent/status');document.getElementById('agent-status-cards').innerHTML=`<div class="metric"><div class="metric-label">Control plane</div><div class="metric-value" style="font-size:18px">${st.control_plane}</div></div><div class="metric"><div class="metric-label">Executor local</div><div class="metric-value" style="font-size:18px">${st.local_agent_process}</div></div><div class="metric"><div class="metric-label">Fila ativa</div><div class="metric-value">${st.queued_tasks}</div></div>`;const d=await ktApi('/agent/tasks?project_id='+encodeURIComponent(window.KT_ACTIVE_PROJECT_ID||''));document.getElementById('agent-task-table').innerHTML=(d.tasks||[]).map(t=>`<tr><td><b>${t.title}</b><div class="fs11 muted">${t.description||''}</div></td><td>${t.priority}</td><td><span class="badge info">${t.status}</span></td><td>${t.status==='queued'?`<button onclick="ktAgentApprove('${t.id}')">Aprovar</button>`:''}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">Nenhuma tarefa.</td></tr>';await ktAgentInstances()}catch(e){document.getElementById('agent-task-table').innerHTML='<tr><td colspan="4">'+e.message+'</td></tr>'}}
+async function ktAgentInstances(){try{const d=await ktApi('/agent/instances');document.getElementById('agent-instance-output').textContent=JSON.stringify(d.instances||[],null,2)}catch(e){document.getElementById('agent-instance-output').textContent=e.message}}
+async function ktAgentCreateTask(){const m=document.getElementById('agent-task-msg');try{if(!window.KT_ACTIVE_PROJECT_ID)throw new Error('Projeto Agente Local não selecionado.');const op=document.getElementById('agent-task-operation').value;const target=document.getElementById('agent-task-target').value.trim();const raw=document.getElementById('agent-task-code-spec').value.trim();let spec={};if(raw){spec=JSON.parse(raw)}else if(op){spec={operation:op,target}}if(op && raw && !spec.operation)spec.operation=op;if(target && !spec.target && !['code_apply','code_dry_run'].includes(op))spec.target=target;const r=await ktApi('/agent/tasks',{method:'POST',body:JSON.stringify({project_id:window.KT_ACTIVE_PROJECT_ID,title:document.getElementById('agent-task-title').value,description:document.getElementById('agent-task-description').value,priority:Number(document.getElementById('agent-task-priority').value),task_type:document.getElementById('agent-task-type').value,execution_spec:spec})});m.textContent='Tarefa registrada: '+(r.task?.id||'OK');await ktAgentRefresh()}catch(e){m.textContent=e.message}}
+async function ktAgentApprove(id){try{await ktApi('/agent/tasks/'+id+'/approve',{method:'POST'});await ktAgentRefresh()}catch(e){alert(e.message)}}
+async function ktControlRefresh(){try{const h=await ktApi('/persistence/health');document.getElementById('control-metrics').innerHTML=`<div class="metric"><div class="metric-label">Supabase</div><div class="metric-value" style="font-size:18px">${h.supabase?.connected?'online':'offline'}</div></div><div class="metric"><div class="metric-label">Neo4j</div><div class="metric-value" style="font-size:18px">${h.neo4j?.connected?'online':'offline'}</div></div><div class="metric"><div class="metric-label">Arquitetura</div><div class="metric-value" style="font-size:18px">${h.healthy?'healthy':'degraded'}</div></div>`;document.getElementById('control-output').textContent=JSON.stringify(h,null,2)}catch(e){document.getElementById('control-output').textContent=e.message}}
+async function ktWorkspaceRefresh(){try{const d=await ktApi('/workspace/me');document.getElementById('workspace-user').innerHTML=`<b>${d.user?.email||'Usuário'}</b><br>${d.user?.user_metadata?.full_name||'Nome não definido'}<br><span class="muted">Role: ${d.role}</span>`}catch(e){document.getElementById('workspace-user').textContent=e.message}}
+async function ktWorkspaceMembers(){try{if(!window.KT_ACTIVE_PROJECT_ID){document.getElementById('workspace-members').textContent='Nenhum projeto ativo.';return}const d=await ktApi('/workspace/projects/'+encodeURIComponent(window.KT_ACTIVE_PROJECT_ID)+'/members');document.getElementById('workspace-members').innerHTML=(d.members||[]).map(m=>`<div class="row-item"><b>${m.profile?.email||m.user_id}</b><span class="dim" style="margin-left:auto">${m.role}</span></div>`).join('')||'Nenhum membro.'}catch(e){document.getElementById('workspace-members').textContent=e.message}}
+async function ktWorkspaceInvite(){const m=document.getElementById('workspace-invite-msg');try{if(!window.KT_ACTIVE_PROJECT_ID)throw new Error('Selecione um projeto primeiro.');const email=document.getElementById('workspace-invite-email').value.trim();const role=document.getElementById('workspace-invite-role').value;if(!email)throw new Error('Informe um e-mail.');await ktApi('/workspace/projects/'+encodeURIComponent(window.KT_ACTIVE_PROJECT_ID)+'/invitations',{method:'POST',body:JSON.stringify({project_id:window.KT_ACTIVE_PROJECT_ID,email,role})});m.textContent='Convite registrado.'}catch(e){m.textContent=e.message}}
+function ktProjectNewForm(show=true){document.getElementById('project-new-form').style.display=show?'block':'none'}
+async function ktProjectsRender(){try{await ktLoadProjects();const el=document.getElementById('project-list');el.innerHTML=(window.KT_PROJECTS||[]).map(p=>`<div class="card"><b>${p.name}</b><div class="fs11 dim">${p.domain||'KALATRACE'} · ${p.project_type}</div><span class="badge ${p.status==='active'?'success':'warning'}">${p.status}</span><button style="margin-top:10px" onclick="ktSelectProject('${p.slug}')">Abrir</button></div>`).join('')||'<div class="muted">Nenhum projeto.</div>';const sel=document.getElementById('cmc-project-select');if(sel)sel.innerHTML='<option value="">Projeto transversal</option>'+(window.KT_PROJECTS||[]).map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}catch(e){document.getElementById('project-list').textContent=e.message}}
+async function ktProjectCreate(){const m=document.getElementById('project-msg');try{const name=document.getElementById('new-project-name').value.trim();const slug=document.getElementById('new-project-slug').value.trim();if(!name||!slug)throw new Error('Nome e slug são obrigatórios.');const r=await ktApi('/projects',{method:'POST',body:JSON.stringify({name,slug,project_type:document.getElementById('new-project-type').value,domain:document.getElementById('new-project-domain').value,description:document.getElementById('new-project-description').value})});m.textContent='Projeto criado.';ktProjectNewForm(false);await ktProjectsRender();await ktLoadProjects();ktSelectProject(r.project?.slug||slug)}catch(e){m.textContent=e.message}}
+async function ktProjectTemplates(){try{const d=await ktApi('/projects/templates');document.getElementById('project-templates').innerHTML=(d.templates||[]).map(t=>`<div class="card"><b>${t.name}</b><p class="fs11 dim">${t.description||''}</p><span class="badge info">${t.project_type}</span><button style="margin-top:10px" onclick="ktProjectUseTemplate('${t.slug}')">Usar template</button></div>`).join('')||'Nenhum template.'}catch(e){document.getElementById('project-templates').textContent=e.message}}
+async function ktProjectUseTemplate(templateSlug){ktProjectNewForm(true);const t=prompt('Nome do novo projeto');if(!t)return;const slug=t.toLowerCase().trim().replace(/\s+/g,'-');try{const r=await ktApi('/projects/from-template',{method:'POST',body:JSON.stringify({template_slug:templateSlug,slug,name:t})});document.getElementById('project-msg').textContent='Projeto criado a partir do template.';await ktProjectsRender();ktSelectProject(r.project?.slug||slug)}catch(e){document.getElementById('project-msg').textContent=e.message}}
+async function ktCmcRefresh(){try{const [h,s,m]=await Promise.all([ktApi('/cmc/health'),ktApi('/cmc/stats'),ktApi('/cmc/persistent/missions?project_id='+(encodeURIComponent(window.KT_ACTIVE_PROJECT_ID||'')))]);document.getElementById('cmc-metrics').innerHTML=`<div class="metric"><div class="metric-label">CMC</div><div class="metric-value" style="font-size:18px">${h.command_mission_center}</div></div><div class="metric"><div class="metric-label">Missões runtime</div><div class="metric-value">${s.missions}</div></div><div class="metric"><div class="metric-label">Persistidas</div><div class="metric-value">${(m.missions||[]).length}</div></div>`;document.getElementById('cmc-mission-list').innerHTML=(m.missions||[]).map(x=>`<div class="row-item"><b>${x.name}</b><span class="dim" style="margin-left:auto">${x.status}</span></div>`).join('')||'Nenhuma missão persistida.';await ktProjectsRender()}catch(e){document.getElementById('cmc-msg').textContent=e.message}}
+async function ktCmcCreateMission(){const m=document.getElementById('cmc-msg');try{const name=document.getElementById('cmc-mission-name').value.trim(),objective=document.getElementById('cmc-mission-objective').value.trim(),project_id=document.getElementById('cmc-project-select').value||null;if(!name||!objective)throw new Error('Nome e objetivo são obrigatórios.');const r=await ktApi('/cmc/persistent/missions',{method:'POST',body:JSON.stringify({name,objective,project_id})});m.textContent='Missão persistida: '+(r.mission?.id||'OK');await ktCmcRefresh()}catch(e){m.textContent=e.message}}
+async function ktLoadOpenApi(){try{const spec=await ktApi('/openapi.json');const entries=Object.entries(spec.paths||{});document.getElementById('api-endpoint-count').textContent=entries.length+' rotas';document.getElementById('api-endpoint-list').innerHTML=entries.flatMap(([path,methods])=>Object.keys(methods).map(method=>`<div class="api-endpoint" onclick="ktPickEndpoint('${method.toUpperCase()}','${path.replace(/'/g,"\'")}')"><span class="method">${method.toUpperCase()}</span><code>${path}</code></div>`)).join('')}catch(e){document.getElementById('api-explorer-output').textContent=e.message}}
+function ktPickEndpoint(method,path){document.getElementById('api-method').value=method;document.getElementById('api-path').value=path;document.getElementById('api-body').value='{}'}
+async function ktExecuteApiExplorer(){try{const method=document.getElementById('api-method').value,path=document.getElementById('api-path').value;const o={method};if(['POST','PATCH','PUT','DELETE'].includes(method))o.body=document.getElementById('api-body').value||'{}';document.getElementById('api-explorer-output').textContent=JSON.stringify(await ktApi(path,o),null,2)}catch(e){document.getElementById('api-explorer-output').textContent=e.message}}
+</script><script src="frontend/backend_bindings.js"></script>
+</body>
+</html>
