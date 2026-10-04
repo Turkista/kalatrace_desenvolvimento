@@ -28,7 +28,7 @@ create index if not exists evidence_type_idx on public.evidence(evidence_type);
 
 create table if not exists public.evidence_iec_links (
   evidence_id text not null references public.evidence(id) on delete cascade,
-  iec_id uuid not null references public.iecs(id) on delete cascade,
+  iec_id text not null,
   owner_id uuid not null references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (evidence_id, iec_id)
@@ -54,7 +54,7 @@ create index if not exists evidence_history_owner_idx on public.evidence_history
 
 create table if not exists public.iec_state_history (
   id uuid primary key default gen_random_uuid(),
-  iec_id uuid not null references public.iecs(id) on delete cascade,
+  iec_id text not null,
   owner_id uuid not null references auth.users(id) on delete cascade,
   from_state text,
   to_state text not null,
@@ -67,7 +67,7 @@ create index if not exists iec_state_history_owner_idx on public.iec_state_histo
 
 create table if not exists public.knowledge_evolution_events (
   id uuid primary key default gen_random_uuid(),
-  iec_id uuid references public.iecs(id) on delete cascade,
+  iec_id text,
   owner_id uuid not null references auth.users(id) on delete cascade,
   event_type text not null,
   details jsonb not null default '{}'::jsonb,
