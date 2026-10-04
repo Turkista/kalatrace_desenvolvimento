@@ -116,7 +116,53 @@ class StateTransitionManager:
         return distribution
 
     # ==========================================================
-    # 6. LIMPAR ESTADO
+    # 6. EXPORTAR / RESTAURAR ESTADO
+    # ==========================================================
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Exporta o estado epistemológico atual para persistência."""
+        return {
+            "iec_states": {
+                iec_id: dict(state)
+                for iec_id, state in self.iec_states.items()
+            }
+        }
+
+    def restore(self, snapshot: Dict[str, Any]) -> None:
+        """Reconstrói estados epistemológicos a partir de um snapshot."""
+        if not isinstance(snapshot, dict):
+            raise TypeError("O snapshot precisa ser um dicionário")
+
+        restored = snapshot.get("iec_states", snapshot)
+        if not isinstance(restored, dict):
+            raise ValueError("Snapshot de estados inválido")
+
+        self.iec_states.clear()
+
+        for iec_id, state in restored.items():
+            if not isinstance(state, dict):
+                raise ValueError(f"Estado inválido para IEC {iec_id}")
+            if state.get("iec_id") != iec_id:
+                raise ValueError(f"Snapshot inconsistente para IEC {iec_id}")
+            if not state.get("current_state"):
+                raise ValueError(f"IEC {iec_id} sem estado atual")
+
+            self.iec_states[iec_id] = {
+                "iec_id": state["iec_id"],
+                "statement": state.get("statement", ""),
+                "current_state": state["current_state"],
+                "previous_states": list(state.get("previous_states", [])),
+                "created_at": state.get("created_at"),
+            }
+
+    @classmethod
+    def from_dict(cls, snapshot: Dict[str, Any]) -> "StateTransitionManager":
+        manager = cls()
+        manager.restore(snapshot)
+        return manager
+
+    # ==========================================================
+    # 7. LIMPAR ESTADO
     # ==========================================================
 
     def clear(self):
@@ -124,7 +170,7 @@ class StateTransitionManager:
         self.iec_states.clear()
 
     # ==========================================================
-    # 7. DEBUG
+    # 8. DEBUG
     # ==========================================================
 
     def __repr__(self) -> str:
