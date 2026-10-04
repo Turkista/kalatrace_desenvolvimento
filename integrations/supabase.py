@@ -155,15 +155,26 @@ class SupabaseClient:
         )
 
     def persist_iec(self, access_token: str, user_id: str, iec: Any) -> Any:
+        """Persiste uma IEC sem confundir iec_id com o campo legado id."""
+        iec_id = getattr(iec, "iec_id", getattr(iec, "id", None))
+        statement = getattr(iec, "statement", getattr(iec, "content", ""))
+        knowledge_type = getattr(iec, "knowledge_type", getattr(iec, "node_type", "unknown"))
+        if not iec_id:
+            raise ValueError("IEC deve possuir iec_id.")
         return self.upsert(
             "iecs",
             {
-                "id": iec.id,
+                "id": iec_id,
                 "owner_id": user_id,
-                "name": iec.id,
-                "statement": iec.content,
-                "methodology": {"node_type": iec.node_type},
-                "result": {"metadata": getattr(iec, "metadata", {}) or {}},
+                "name": iec_id,
+                "statement": statement,
+                "methodology": {"knowledge_type": knowledge_type},
+                "result": {
+                    "metadata": getattr(iec, "metadata", {}) or {},
+                    "confidence": getattr(iec, "confidence", 0.0),
+                    "status": getattr(iec, "status", "active"),
+                    "evidence_ids": getattr(iec, "evidence_ids", []) or [],
+                },
             },
             access_token,
         )
@@ -336,6 +347,24 @@ class SupabaseClient:
             on_conflict="evidence_id,iec_id",
         )
 
+    def list_evidence_iec_links(
+        self,
+        access_token: str,
+        *,
+        iec_id: Optional[str] = None,
+        evidence_id: Optional[str] = None,
+        limit: int = 500,
+    ) -> Any:
+        filters = {
+            "order": "created_at.asc",
+            "limit": str(min(max(limit, 1), 500)),
+        }
+        if iec_id:
+            filters["iec_id"] = f"eq.{iec_id}"
+        if evidence_id:
+            filters["evidence_id"] = f"eq.{evidence_id}"
+        return self.select("evidence_iec_links", access_token, filters=filters)
+
     def list_evidence_for_iec(
         self,
         access_token: str,
@@ -429,6 +458,26 @@ class SupabaseClient:
             access_token,
             filters={
                 "iec_id": f"eq.{iec_id}",
+                "order": "created_at.asc",
+                "limit": str(min(max(limit, 1), 500)),
+            },
+        )
+
+    def list_all_iec_state_history(self, access_token: str, limit: int = 500) -> Any:
+        return self.select(
+            "iec_state_history",
+            access_token,
+            filters={
+                "order": "created_at.asc",
+                "limit": str(min(max(limit, 1), 500)),
+            },
+        )
+
+    def list_iecs(self, access_token: str, limit: int = 500) -> Any:
+        return self.select(
+            "iecs",
+            access_token,
+            filters={
                 "order": "created_at.asc",
                 "limit": str(min(max(limit, 1), 500)),
             },
