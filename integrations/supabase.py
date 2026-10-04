@@ -279,6 +279,7 @@ class SupabaseClient:
         return self._request("PATCH", "/rest/v1/local_agent_tasks", access_token=access_token, json=values, params={"id": f"eq.{task_id}"}, prefer="return=representation")
 
     def persist_evidence(self, access_token: str, user_id: str, evidence: Any) -> Any:
+        """Persiste uma EvidenceContract sem promover confiança a verdade científica."""
         return self.upsert(
             "evidence",
             {
@@ -288,10 +289,149 @@ class SupabaseClient:
                 "source": evidence.source,
                 "title": evidence.title,
                 "content": evidence.description,
-                "reliability": evidence.confidence,
+                "confidence": evidence.confidence,
+                "quality_score": evidence.quality_score,
+                "evidence_level": evidence.evidence_level,
+                "doi": evidence.doi,
+                "pmid": evidence.pmid,
+                "url": evidence.url,
+                "domain": evidence.domain,
+                "category": evidence.category,
+                "version": evidence.version,
                 "metadata": evidence.metadata or {},
             },
             access_token,
+        )
+
+    def list_evidence(
+        self,
+        access_token: str,
+        *,
+        evidence_id: Optional[str] = None,
+        limit: int = 100,
+    ) -> Any:
+        filters = {
+            "order": "created_at.asc",
+            "limit": str(min(max(limit, 1), 500)),
+        }
+        if evidence_id:
+            filters["id"] = f"eq.{evidence_id}"
+        return self.select("evidence", access_token, filters=filters)
+
+    def link_evidence_to_iec(
+        self,
+        access_token: str,
+        user_id: str,
+        evidence_id: str,
+        iec_id: str,
+    ) -> Any:
+        return self.upsert(
+            "evidence_iec_links",
+            {
+                "evidence_id": evidence_id,
+                "iec_id": iec_id,
+                "owner_id": user_id,
+            },
+            access_token,
+            on_conflict="evidence_id,iec_id",
+        )
+
+    def list_evidence_for_iec(
+        self,
+        access_token: str,
+        iec_id: str,
+        limit: int = 100,
+    ) -> Any:
+        return self.select(
+            "evidence_iec_links",
+            access_token,
+            filters={
+                "iec_id": f"eq.{iec_id}",
+                "order": "created_at.asc",
+                "limit": str(min(max(limit, 1), 500)),
+            },
+        )
+
+    def record_evidence_history(
+        self,
+        access_token: str,
+        user_id: str,
+        evidence_id: str,
+        event_type: str,
+        *,
+        previous_confidence: Optional[float] = None,
+        new_confidence: Optional[float] = None,
+        reason: Optional[str] = None,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        return self.insert(
+            "evidence_history",
+            {
+                "evidence_id": evidence_id,
+                "owner_id": user_id,
+                "event_type": event_type,
+                "previous_confidence": previous_confidence,
+                "new_confidence": new_confidence,
+                "reason": reason,
+                "payload": payload or {},
+            },
+            access_token,
+        )
+
+    def record_iec_state_transition(
+        self,
+        access_token: str,
+        user_id: str,
+        iec_id: str,
+        from_state: Optional[str],
+        to_state: str,
+        reason: str,
+    ) -> Any:
+        return self.insert(
+            "iec_state_history",
+            {
+                "iec_id": iec_id,
+                "owner_id": user_id,
+                "from_state": from_state,
+                "to_state": to_state,
+                "reason": reason,
+            },
+            access_token,
+        )
+
+    def record_knowledge_evolution_event(
+        self,
+        access_token: str,
+        user_id: str,
+        iec_id: Optional[str],
+        event_type: str,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        return self.insert(
+            "knowledge_evolution_events",
+            {
+                "iec_id": iec_id,
+                "owner_id": user_id,
+                "event_type": event_type,
+                "details": details or {},
+            },
+            access_token,
+        )
+
+    def list_iec_state_history(
+        self,
+        access_token: str,
+        iec_id: str,
+        limit: int = 500,
+    ) -> Any:
+        return self.select(
+            "iec_state_history",
+            access_token,
+            filters={
+                "iec_id": f"eq.{iec_id}",
+                "order": "created_at.asc",
+                "limit": str(min(max(limit, 1), 500)),
+            },
         )
 
     def list_project_invitations(self, access_token: str, project_id: Optional[str] = None) -> Any:
