@@ -502,7 +502,50 @@ class EvidenceStore:
 
 
     # ==========================================================
-    # 10. ESTATÍSTICAS DO SISTEMA
+    # 10. RESTAURAR ESTADO
+    # ==========================================================
+
+    def restore(self, state: Dict[str, Any]) -> None:
+        """Reconstrói o store a partir de um snapshot persistido."""
+        if not isinstance(state, dict):
+            raise TypeError("O estado precisa ser um dicionário")
+
+        self.evidences.clear()
+        self.iec_index.clear()
+        self.history.clear()
+
+        for evidence_id, payload in state.get("evidences", {}).items():
+            evidence = EvidenceContract.from_dict(payload)
+            if evidence.evidence_id != evidence_id:
+                raise ValueError(
+                    f"Snapshot inconsistente para evidência {evidence_id}"
+                )
+            evidence.validate()
+            self.evidences[evidence_id] = evidence
+
+        for iec_id, evidence_ids in state.get("iec_index", {}).items():
+            self.iec_index[iec_id] = set(evidence_ids)
+
+        self.history.extend(state.get("history", []))
+
+    @classmethod
+    def from_dict(cls, state: Dict[str, Any]) -> "EvidenceStore":
+        store = cls()
+        store.restore(state)
+        return store
+
+    # ==========================================================
+    # 11. EXPORTAR UMA EVIDÊNCIA
+    # ==========================================================
+
+    def export_evidence(self, evidence_id: str) -> Dict[str, Any]:
+        evidence = self.get_evidence(evidence_id)
+        if evidence is None:
+            raise ValueError(f"Evidência {evidence_id} não encontrada")
+        return evidence.to_dict()
+
+    # ==========================================================
+    # 12. ESTATÍSTICAS DO SISTEMA
     # ==========================================================
 
     def stats(self) -> Dict[str, Any]:
@@ -529,7 +572,7 @@ class EvidenceStore:
 
 
     # ==========================================================
-    # 11. LIMPAR MEMÓRIA
+    # 13. LIMPAR MEMÓRIA
     # ==========================================================
 
     def clear(self):
@@ -546,7 +589,7 @@ class EvidenceStore:
 
 
     # ==========================================================
-    # 12. DEBUG
+    # 14. DEBUG
     # ==========================================================
 
     def __repr__(self):
