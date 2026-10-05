@@ -335,13 +335,22 @@ class SupabaseClient:
         user_id: str,
         evidence_id: str,
         iec_id: str,
+        relation: str = "SUPPORTS",
+        weight: float = 1.0,
+        reason: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Any:
+        """Persiste o vínculo epistemológico Evidence -> IEC."""
         return self.upsert(
             "evidence_iec_links",
             {
                 "evidence_id": evidence_id,
                 "iec_id": iec_id,
                 "owner_id": user_id,
+                "relation": relation,
+                "weight": weight,
+                "reason": reason,
+                "metadata": metadata or {},
             },
             access_token,
             on_conflict="evidence_id,iec_id",
