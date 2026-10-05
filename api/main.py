@@ -2183,6 +2183,58 @@ def get_evidence_strength(
 
 
 # ==========================================================
+# EPISTEMIC CONCLUSION VIEW
+# ==========================================================
+
+@app.get("/epistemic/iec/{iec_id}")
+def get_epistemic_conclusion(iec_id: str):
+    """Returns the current epistemic state of one IEC with its evidence trail.
+
+    This projection explains the current support state; it does not declare
+    scientific truth.
+    """
+    iec = graph.get_node(iec_id)
+    if iec is None:
+        raise HTTPException(status_code=404, detail=f"IEC não encontrada: {iec_id}")
+
+    ref = IECRefIn(
+        iec_id=iec_id,
+        title=getattr(iec, "title", None) or str(getattr(iec, "content", iec_id))[:120],
+        statement=getattr(iec, "statement", None) or getattr(iec, "content", ""),
+        knowledge_type=getattr(iec, "knowledge_type", None) or getattr(iec, "node_type", "Conhecimento"),
+        confidence=float(getattr(iec, "confidence", 0.0) or 0.0),
+    )
+    contract = _to_iec_contract(ref)
+    validation = evidence_validator.validate_iec(contract)
+    gaps = evidence_validator.analyze_evidence_gaps(contract)
+    evidences = [e.to_dict() for e in evidence_store.get_evidence_for_iec(iec_id)]
+    evidences.sort(key=lambda e: float(e.get("confidence") or 0), reverse=True)
+
+    return {
+        "iec": {"id": iec_id, "title": ref.title, "statement": ref.statement, "knowledge_type": ref.knowledge_type},
+        "current_state": {
+            "classification": validation["classification"],
+            "evidence_strength": validation["evidence_strength"],
+            "evidence_count": validation["evidence_count"],
+            "graph_confidence": ref.confidence,
+            "interpretation": evidence_validator._interpret_strength(validation["classification"]),
+        },
+        "evidence": evidences,
+        "strongest_evidence": evidences[0] if evidences else None,
+        "gaps": gaps["identified_gaps"],
+        "explanation": "Estado atual calculado a partir das evidências atualmente vinculadas à IEC. Não representa verdade científica absoluta.",
+    }
+
+
+@app.get("/evidence")
+def list_evidence():
+    """Lists the evidence currently held by the runtime EvidenceStore."""
+    evidences = [e.to_dict() for e in evidence_store.evidences.values()]
+    evidences.sort(key=lambda e: float(e.get("confidence") or 0), reverse=True)
+    return {"evidence": evidences, "total": len(evidences), "stats": evidence_store.stats()}
+
+
+# ==========================================================
 # EVIDENCE VALIDATION
 # ==========================================================
 
