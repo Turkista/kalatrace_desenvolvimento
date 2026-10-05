@@ -2064,6 +2064,7 @@ def create_evidence(
     payload: EvidenceCreateIn,
     request: Request,
 ):
+    _hydrate_evidence_store_from_supabase(request)
     try:
         evidence = evidence_store.create_evidence(
             evidence_id=payload.evidence_id,
@@ -2128,14 +2129,35 @@ def get_evidence(
 @app.delete("/evidence/{evidence_id}")
 def delete_evidence(
     evidence_id: str,
+    request: Request,
 ):
+    _hydrate_evidence_store_from_supabase(request)
     removed = evidence_store.remove_evidence(
         evidence_id
     )
 
+    if removed:
+        try:
+            supabase_client.delete(
+                "evidence_iec_links",
+                request.state.access_token,
+                {"evidence_id": f"eq.{evidence_id}"},
+            )
+            supabase_client.delete(
+                "evidence",
+                request.state.access_token,
+                {"id": f"eq.{evidence_id}"},
+            )
+        except SupabaseError as exc:
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail=str(exc),
+            ) from exc
+
     return {
         "evidence_id": evidence_id,
         "removed": removed,
+        "persistence": {"supabase": bool(removed)},
     }
 
 
@@ -2143,7 +2165,17 @@ def delete_evidence(
 def update_evidence_confidence(
     evidence_id: str,
     payload: EvidenceConfidenceIn,
+    request: Request,
 ):
+    _hydrate_evidence_store_from_supabase(request)
+    evidence_before = evidence_store.get_evidence(evidence_id)
+    if evidence_before is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Evidência não encontrada: {evidence_id}",
+        )
+    previous_confidence = evidence_before.confidence
+
     _guarded(
         evidence_store.update_evidence_confidence,
         evidence_id,
@@ -2164,7 +2196,35 @@ def update_evidence_confidence(
             ),
         )
 
-    return evidence.to_dict()
+    try:
+        persisted = supabase_client.persist_evidence(
+            request.state.access_token,
+            request.state.user["id"],
+            evidence,
+        )
+        supabase_client.record_evidence_history(
+            request.state.access_token,
+            request.state.user["id"],
+            evidence_id,
+            "confidence_updated",
+            previous_confidence=previous_confidence,
+            new_confidence=evidence.confidence,
+            reason=payload.reason,
+            payload={"source": "api"},
+        )
+    except SupabaseError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        **evidence.to_dict(),
+        "persistence": {
+            "supabase": True,
+            "rows": len(persisted) if isinstance(persisted, list) else 1,
+        },
+    }
 
 
 @app.post("/evidence/link")
