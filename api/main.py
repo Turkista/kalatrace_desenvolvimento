@@ -2037,6 +2037,28 @@ class EvidenceConfidenceIn(BaseModel):
     reason: str
 
 
+def _hydrate_evidence_store_from_supabase(request: Request) -> Dict[str, int]:
+    """Reconstrói o EvidenceStore do usuário autenticado antes de consultas epistemológicas."""
+    try:
+        evidence_rows = supabase_client.list_evidence(
+            request.state.access_token,
+            limit=500,
+        )
+        link_rows = supabase_client.list_evidence_iec_links(
+            request.state.access_token,
+            limit=500,
+        )
+        return evidence_store.hydrate_from_persistence(
+            evidence_rows or [],
+            link_rows or [],
+        )
+    except SupabaseError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=str(exc),
+        ) from exc
+
+
 @app.post("/evidence")
 def create_evidence(
     payload: EvidenceCreateIn,
@@ -2084,7 +2106,9 @@ def create_evidence(
 @app.get("/evidence/{evidence_id}")
 def get_evidence(
     evidence_id: str,
+    request: Request,
 ):
+    _hydrate_evidence_store_from_supabase(request)
     evidence = evidence_store.get_evidence(
         evidence_id
     )
@@ -2146,6 +2170,7 @@ def update_evidence_confidence(
 @app.post("/evidence/link")
 def link_evidence_to_iec(
     payload: EvidenceLinkIn,
+    request: Request,
 ):
     relation = payload.relation.upper().strip()
 
@@ -2158,6 +2183,8 @@ def link_evidence_to_iec(
             ),
         )
 
+    _hydrate_evidence_store_from_supabase(request)
+
     result = _guarded(
         evidence_store.link_to_iec,
         payload.evidence_id,
@@ -2168,6 +2195,23 @@ def link_evidence_to_iec(
         payload.metadata,
     )
 
+    try:
+        persisted = supabase_client.link_evidence_to_iec(
+            request.state.access_token,
+            request.state.user["id"],
+            payload.evidence_id,
+            payload.iec_id,
+            relation,
+            payload.weight,
+            payload.reason,
+            payload.metadata,
+        )
+    except SupabaseError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=str(exc),
+        ) from exc
+
     return {
         "evidence_id": payload.evidence_id,
         "iec_id": payload.iec_id,
@@ -2177,13 +2221,19 @@ def link_evidence_to_iec(
         "reason": payload.reason,
         "metadata": payload.metadata,
         "epistemic_relation": result,
+        "persistence": {
+            "supabase": True,
+            "rows": len(persisted) if isinstance(persisted, list) else 1,
+        },
     }
 
 
 @app.get("/evidence/for-iec/{iec_id}")
 def get_evidence_for_iec(
     iec_id: str,
+    request: Request,
 ):
+    _hydrate_evidence_store_from_supabase(request)
     return [
         evidence.to_dict()
         for evidence in evidence_store.get_evidence_for_iec(
