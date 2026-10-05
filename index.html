@@ -269,7 +269,58 @@
 
       <section class="screen" id="screen-hipoteses"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-bulb"></i> Hypothesis workspace</h1><p class="page-sub">Catálogo e evolução das hipóteses científicas. <span class="fs11 dim">Modelo de dados existe em <code>knowledge/hypothesis.py</code>, mas a persistência ainda é placeholder — cards abaixo refletem o schema previsto, não uma API já ativa.</span></p></div><button class="primary"><i class="ti ti-plus"></i> Nova hipótese</button></div><div class="card"><div class="row-item"><div style="flex:1"><b>H-204 — Bakuchiol e resveratrol induzem neurorregeneração medular</b><div class="fs11 dim">E2 · S3 (escala manual, Doc. 32) · IEC.confidence 0.64 · 6 evidências vinculadas</div></div><span class="badge warning">Evidência Emergente</span></div><div class="row-item"><div style="flex:1"><b>H-118 — Resveratrol isolado é insuficiente para regeneração muscular</b><div class="fs11 dim">E3 · S2 (escala manual, Doc. 32) · IEC.confidence 0.41 · 9 evidências vinculadas</div></div><span class="badge danger">Conhecimento Contestado</span></div><div class="row-item"><div style="flex:1"><b>H-097 — Combinação dos dois ativos reduz dose efetiva necessária</b><div class="fs11 dim">E1 · S1 (escala manual, Doc. 32) · IEC.confidence 0.29 · 2 evidências vinculadas</div></div><span class="badge" style="background:var(--coral-soft);color:var(--coral)">Hipótese</span></div><div class="row-item"><div style="flex:1"><b>H-063 — Via SIRT1 é o mecanismo dominante de ação do bakuchiol</b><div class="fs11 dim">E4 · S3 (escala manual, Doc. 32) · IEC.confidence 0.87 · 14 evidências vinculadas</div></div><span class="badge success">Conhecimento Consolidado</span></div></div></section>
 
-      <section class="screen" id="screen-evidencias"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-file-search"></i> Evidence viewer</h1><p class="page-sub">Evidências vinculadas às hipóteses e aos registros do projeto. <span class="fs11 dim">Campos conforme <code>contracts/evidence_contract.py</code> — API real em <code>/evidence</code>.</span></p></div></div><div class="card"><div class="card-head"><h2 class="card-title">Ensaio in vitro — curva dose-resposta, lote L-042</h2><span class="badge purple">in_vitro</span></div><div class="row-item"><span class="muted" style="width:100px">evidence_level</span><span class="dim">moderate</span></div><div class="row-item"><span class="muted" style="width:100px">confidence</span><span class="dim">0.58</span></div><div class="row-item"><span class="muted" style="width:100px">quality_score</span><span class="dim">0.63</span></div><div class="row-item"><span class="muted" style="width:100px">Observação</span><span class="dim">6 pontos de concentração medidos, EC50 estimado por interpolação linear.</span></div><div class="row-item"><span class="muted" style="width:100px">Metodologia</span><span class="dim">Linhagem celular rastreada, passagem 4, protocolo padronizado.</span></div><div class="row-item"><span class="muted" style="width:100px">Interpretação</span><span class="dim">Sugere ativação dose-dependente da via SIRT1.</span></div><div class="row-item"><span class="muted" style="width:100px">Limitação</span><span class="dim">Leitura preliminar, requer regressão sigmoide completa antes de publicação.</span></div></div><div class="card"><div class="row-item"><i class="ti ti-flask"></i><span style="flex:1">Estudo cohort 2024 — exposição crônica</span><span class="badge success">observational_study · level: high</span></div><div class="row-item"><i class="ti ti-eye"></i><span style="flex:1">Relato observacional — regeneração cutânea em modelo animal</span><span class="badge warning">animal_study · level: low</span></div><div class="row-item"><i class="ti ti-cpu"></i><span style="flex:1">Simulação de docking molecular Bakuchiol-SIRT1</span><span class="badge" style="background:var(--coral-soft);color:var(--coral)">expert_opinion · level: very_low</span></div></div></section>
+      <section class="screen" id="screen-evidencias">
+<div class="page-head">
+  <div>
+    <h1 class="page-title"><i class="ti ti-file-search"></i> Estado epistemológico</h1>
+    <p class="page-sub">A evidência agora é apresentada conforme seu papel diante da IEC: suporte, contradição ou neutralidade. A tela não declara verdade científica absoluta.</p>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head"><h2 class="card-title">Consultar IEC</h2><span id="kt-epistemic-status" class="badge warning">Aguardando consulta</span></div>
+  <div class="form-grid">
+    <div class="field full">
+      <label>ID da IEC</label>
+      <input id="kt-epistemic-iec-id" placeholder="Cole o ID da IEC persistida no Supabase">
+    </div>
+  </div>
+  <div class="actions">
+    <button class="primary" onclick="ktLoadEpistemicState()">Consultar estado atual</button>
+    <span class="fs11 muted">Fonte: GET /epistemic/iec/{iec_id}</span>
+  </div>
+  <div id="kt-epistemic-error" class="fs11" style="margin-top:9px;color:var(--danger)"></div>
+</div>
+<div id="kt-epistemic-result" style="display:none">
+  <div class="metric-grid" id="kt-epistemic-metrics"></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h2 class="card-title">IEC</h2><span id="kt-epistemic-classification" class="badge"></span></div>
+      <h3 id="kt-epistemic-title" class="card-title"></h3>
+      <p id="kt-epistemic-statement" class="fs12 dim"></p>
+      <div class="row-item"><span class="dim">Interpretação</span><span id="kt-epistemic-interpretation" class="fs12" style="margin-left:auto;text-align:right;max-width:70%"></span></div>
+      <div class="row-item"><span class="dim">Confiança no grafo</span><b id="kt-epistemic-graph-confidence" style="margin-left:auto"></b></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2 class="card-title">Balanço das evidências</h2></div>
+      <div class="bar-row"><span>Suporte</span><div class="progress"><span id="kt-epistemic-support-bar"></span></div><b id="kt-epistemic-support"></b></div>
+      <div class="bar-row"><span>Contradição</span><div class="progress"><span id="kt-epistemic-contradiction-bar"></span></div><b id="kt-epistemic-contradiction"></b></div>
+      <p class="fs11 muted">Os dois escores são calculados separadamente. Contradição não é convertida em suporte.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">Evidências e papel epistemológico</h2><span id="kt-epistemic-count" class="badge blue"></span></div>
+    <div id="kt-epistemic-evidence-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">Lacunas identificadas</h2></div>
+    <div id="kt-epistemic-gaps" class="fs12 dim"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2 class="card-title">Explicação do estado atual</h2></div>
+    <p id="kt-epistemic-explanation" class="fs12 dim"></p>
+  </div>
+</div>
+</section>
 
       <section class="screen" id="screen-simulacao"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-flask"></i> Simulation interface</h1><p class="page-sub">Ambiente experimental isolado. Nada aqui altera o conhecimento real do grafo até ser promovido explicitamente. <span class="fs11 dim">simulation/ ainda é uma pasta vazia — esta tela mostra o comportamento previsto, não uma engine ativa.</span></p></div></div><div class="grid-2"><div class="card"><h2 class="card-title">Novo cenário “e se”</h2><textarea placeholder="Ex: e se a dose de bakuchiol fosse reduzida em 30%?" style="margin-top:10px"></textarea><select style="margin-top:8px"><option>Baseado em H-204</option><option>Baseado em H-063</option><option>Cenário livre</option></select><button class="primary" style="margin-top:8px">Rodar simulação</button></div><div class="card"><h2 class="card-title">Resultado do cenário</h2><div class="row-item"><span class="dim">EC50 projetado</span><b style="margin-left:auto">4.2 µM</b></div><div class="row-item"><span class="dim">Variação vs. base</span><b style="margin-left:auto;color:var(--warning)">-18%</b></div><div class="row-item"><span class="dim">Confiança do cenário</span><b style="margin-left:auto">0.52</b></div></div></div></section>
 
@@ -505,6 +556,53 @@ async function saveDemo(btn){
   try{const result=await ktApi('/research/forms',{method:'POST',body:JSON.stringify({form_type:formId,data:ktFormData(card),status:'submitted',project_id:window.KT_ACTIVE_PROJECT_ID||null})});
     msg.textContent='Registro salvo no Supabase.';msg.style.color='var(--success)';card.dataset.recordId=result.record?.id||'';
   }catch(e){msg.textContent='Falha ao salvar: '+e.message;msg.style.color='var(--danger)'}finally{btn.disabled=false}
+}
+function ktFmtScore(v){return Number(v||0).toFixed(2)}
+function ktRelationBadge(relation){
+  const map={SUPPORTS:['success','SUPORTE'],CONTRADICTS:['danger','CONTRADIÇÃO'],NEUTRAL:['blue','NEUTRA']};
+  const x=map[relation]||['warning',relation||'NÃO CLASSIFICADA'];
+  return '<span class="badge '+x[0]+'">'+x[1]+'</span>';
+}
+async function ktLoadEpistemicState(){
+  const id=document.getElementById('kt-epistemic-iec-id').value.trim();
+  const status=document.getElementById('kt-epistemic-status');
+  const error=document.getElementById('kt-epistemic-error');
+  const result=document.getElementById('kt-epistemic-result');
+  error.textContent='';
+  if(!id){error.textContent='Informe o ID da IEC.';return}
+  if(!(await ktEnsureAuth())) return;
+  status.className='badge warning';status.textContent='Consultando...';result.style.display='none';
+  try{
+    const d=await ktApi('/epistemic/iec/'+encodeURIComponent(id));
+    const s=d.current_state||{},syn=d.synthesis||{};
+    status.className='badge success';status.textContent='Estado carregado';
+    document.getElementById('kt-epistemic-result').style.display='';
+    document.getElementById('kt-epistemic-metrics').innerHTML=
+      '<div class="metric"><div class="metric-label">Força de suporte</div><div class="metric-value">'+ktFmtScore(s.support_score)+'</div></div>'+
+      '<div class="metric"><div class="metric-label">Contradição</div><div class="metric-value">'+ktFmtScore(s.contradiction_score)+'</div></div>'+
+      '<div class="metric"><div class="metric-label">Evidências</div><div class="metric-value">'+(s.evidence_count||0)+'</div></div>'+
+      '<div class="metric"><div class="metric-label">Estado atual</div><div class="metric-value" style="font-size:18px">'+(s.classification||'—')+'</div></div>';
+    document.getElementById('kt-epistemic-classification').className='badge '+(s.classification==='STRONG'?'success':s.classification==='MODERATE'?'blue':s.classification==='WEAK'?'warning':'danger');
+    document.getElementById('kt-epistemic-classification').textContent=s.classification||'—';
+    document.getElementById('kt-epistemic-title').textContent=d.iec?.title||d.iec?.id||id;
+    document.getElementById('kt-epistemic-statement').textContent=d.iec?.statement||'';
+    document.getElementById('kt-epistemic-interpretation').textContent=s.interpretation||'';
+    document.getElementById('kt-epistemic-graph-confidence').textContent=ktFmtScore(s.graph_confidence);
+    document.getElementById('kt-epistemic-support').textContent=ktFmtScore(s.support_score);
+    document.getElementById('kt-epistemic-contradiction').textContent=ktFmtScore(s.contradiction_score);
+    document.getElementById('kt-epistemic-support-bar').style.width=(Number(s.support_score||0)*100)+'%';
+    document.getElementById('kt-epistemic-contradiction-bar').style.width=(Number(s.contradiction_score||0)*100)+'%';
+    document.getElementById('kt-epistemic-count').textContent=(s.evidence_count||0)+' evidências · '+(s.supporting_count||0)+' suporte · '+(s.contradicting_count||0)+' contradição · '+(s.neutral_count||0)+' neutras';
+    const list=document.getElementById('kt-epistemic-evidence-list');
+    list.innerHTML=(d.evidence||[]).map(e=>{
+      const r=e.epistemic_relation||{};
+      return '<div class="row-item"><div style="flex:1"><b>'+((e.title||e.id||'Evidência'))+'</b><div class="fs11 dim">'+(e.evidence_type||'')+' · confidence '+ktFmtScore(e.confidence)+' · quality '+ktFmtScore(e.quality_score)+'</div><div class="fs11 muted">'+(r.reason||'Sem justificativa registrada.')+'</div></div>'+ktRelationBadge(r.relation)+'<span class="fs11 dim">peso '+ktFmtScore(r.weight)+'</span></div>';
+    }).join('')||'<div class="muted">Nenhuma evidência vinculada a esta IEC.</div>';
+    document.getElementById('kt-epistemic-gaps').innerHTML=(d.gaps||[]).map(g=>'<div class="row-item"><i class="ti ti-alert-triangle"></i><span>'+g+'</span></div>').join('')||'<span>Nenhuma lacuna registrada pela análise atual.</span>';
+    document.getElementById('kt-epistemic-explanation').textContent=d.explanation||'';
+  }catch(e){
+    status.className='badge danger';status.textContent='Falha na consulta';error.textContent=e.message;result.style.display='none';
+  }
 }
 async function ktLoadResearchForms(){
   if(!ktToken())return;try{const data=await ktApi('/research/forms?limit=100');const records=data.records||[];const el=document.getElementById('kt-form-count');if(el)el.textContent=records.length+' registros persistidos';}catch(e){}
