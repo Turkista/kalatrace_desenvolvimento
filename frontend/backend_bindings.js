@@ -15,8 +15,25 @@
       .kt-live-card h4{margin:0 0 7px;color:var(--navy);font-size:12px}.kt-live-value{font-size:12px;color:var(--text-secondary);word-break:break-word}
       .kt-route-ok{color:var(--success)}.kt-route-err{color:var(--danger)}.kt-route-row{display:grid;grid-template-columns:70px 1fr 90px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px}
       .kt-route-row:last-child{border-bottom:0}.kt-route-row button{padding:4px 7px;font-size:10px}
+      .kt-epistemic-controls{display:flex;gap:8px;margin:12px 0}.kt-epistemic-controls input{flex:1;padding:9px 11px;border:1px solid var(--border);border-radius:8px}.kt-epistemic-summary{display:grid;grid-template-columns:1fr auto;gap:18px;padding:14px;background:var(--surface-1);border-radius:10px}.kt-epistemic-statement{font-size:15px;font-weight:600;margin-top:6px}.kt-epistemic-metrics{display:flex;gap:18px}.kt-epistemic-metrics div{display:flex;flex-direction:column;min-width:82px}.kt-epistemic-metrics b{font-size:20px;color:var(--navy)}.kt-epistemic-metrics span{font-size:10px;color:var(--text-secondary)}.kt-epistemic-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.kt-epistemic-box{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px}.kt-epistemic-box p{font-size:11px;color:var(--text-secondary)}
+      @media(max-width:900px){.kt-epistemic-summary,.kt-epistemic-grid{grid-template-columns:1fr}.kt-epistemic-metrics{flex-wrap:wrap}}
       @media(max-width:900px){.kt-live-grid{grid-template-columns:1fr}.kt-route-row{grid-template-columns:60px 1fr 70px}}
     `;document.head.appendChild(s);
+  }
+  function ensureEpistemicPanel(){
+    const screen=document.getElementById('screen-evidencias'); if(!screen)return null;
+    let panel=screen.querySelector('.kt-epistemic-panel'); if(panel)return panel;
+    panel=document.createElement('div');panel.className='card kt-epistemic-panel';
+    panel.innerHTML='<div class="card-head"><div><h2 class="card-title">Conclusão atual</h2><div class="fs11 dim">Posição epistemológica atual e trilha das evidências que a sustentam.</div></div><button type="button" class="kt-epistemic-load">Analisar IEC</button></div><div class="kt-epistemic-controls"><input class="kt-epistemic-id" placeholder="ID da IEC (ex.: IEC-001)"><button type="button" class="kt-epistemic-refresh">Atualizar</button></div><div class="kt-epistemic-body"><div class="fs11 dim">Informe uma IEC para ver sustentação, evidência de maior confiança e lacunas.</div></div>';
+    const head=screen.querySelector('.page-head'); if(head)head.after(panel); else screen.prepend(panel);
+    const run=async()=>{const id=panel.querySelector('.kt-epistemic-id').value.trim();if(!id)return;const body=panel.querySelector('.kt-epistemic-body');body.innerHTML='<div class="fs11 dim">Calculando estado epistemológico…</div>';try{const d=await api('/epistemic/iec/'+encodeURIComponent(id));renderEpistemic(panel,d);}catch(e){body.innerHTML='<div class="kt-route-err">'+esc(e.message)+'</div>';}}; 
+    panel.querySelector('.kt-epistemic-load').onclick=run;panel.querySelector('.kt-epistemic-refresh').onclick=run;panel.querySelector('.kt-epistemic-id').onkeydown=e=>{if(e.key==='Enter')run()};
+    return panel;
+  }
+  function renderEpistemic(panel,d){
+    const s=d.current_state||{}, top=d.strongest_evidence, ev=d.evidence||[], gaps=d.gaps||[];
+    const pct=Math.round(Number(s.evidence_strength||0)*100);
+    panel.querySelector('.kt-epistemic-body').innerHTML='<div class="kt-epistemic-summary"><div><span class="muted">Afirmação</span><div class="kt-epistemic-statement">'+esc(d.iec?.statement||'')+'</div></div><div class="kt-epistemic-metrics"><div><b>'+pct+'%</b><span>Sustentação atual</span></div><div><b>'+esc(s.classification||'UNKNOWN')+'</b><span>Estado</span></div><div><b>'+ev.length+'</b><span>Evidências</span></div></div></div><div class="kt-epistemic-grid"><div class="kt-epistemic-box"><b>Por que esta é a posição atual?</b><p>'+esc(s.interpretation||'')+'</p><p class="fs11 dim">'+esc(d.explanation||'')+'</p></div><div class="kt-epistemic-box"><b>Evidência de maior confiança</b><p>'+esc(top?.title||'Nenhuma evidência vinculada')+'</p><span class="badge purple">'+(top?Math.round(Number(top.confidence||0)*100)+'% confidence':'—')+'</span><p class="fs11 dim">'+esc(top?.source||'Fonte não informada')+'</p></div></div><div class="kt-epistemic-box"><b>Trilha de evidências</b>'+(ev.length?ev.map(x=>'<div class="row-item"><span style="flex:1"><b>'+esc(x.title||x.id)+'</b><div class="fs11 dim">'+esc(x.evidence_type||'')+' · '+esc(x.source||'Fonte não informada')+'</div></span><span class="badge">'+Math.round(Number(x.confidence||0)*100)+'%</span></div>').join(''):'<p class="fs11 dim">Nenhuma evidência vinculada a esta IEC.</p>')+'</div><div class="kt-epistemic-box"><b>Lacunas identificadas</b>'+(gaps.length?gaps.map(x=>'<div class="row-item"><span class="badge warning">Lacuna</span><span style="flex:1">'+esc(x)+'</span></div>').join(''):'<p class="fs11 dim">Nenhuma lacuna identificada pelo motor atual.</p>')+'</div>';
   }
   function ensureLivePanel(screenId,title='Dados em tempo real'){
     const screen=document.getElementById('screen-'+screenId); if(!screen)return null;
@@ -42,7 +59,7 @@
       grafo:[['Neo4j','/neo4j/health',d=>d.status||d.connected?'online':'offline'],['Estatísticas','/neo4j/stats',d=>JSON.stringify(d)],['Grafo','/neo4j/graph',d=>(d.nodes||[]).length+' nós · '+(d.edges||[]).length+' relações']],
       governanca:[['Conflitos','/curation/conflicts',d=>JSON.stringify(d)],['Duplicidades','/curation/duplicates',d=>JSON.stringify(d)],['Lacunas','/curation/gaps',d=>JSON.stringify(d)]],
       metacognicao:[['Saúde do ciclo','/cognitive-cycle/health',d=>JSON.stringify(d)],['Ciclo ativo','/cognitive-cycle/active',d=>JSON.stringify(d)],['Estatísticas','/cognitive-cycle/stats',d=>JSON.stringify(d)]],
-      evidencias:[['Histórico de validação','/validation/history',d=>JSON.stringify(d)],['Estatísticas de validação','/validation/stats',d=>JSON.stringify(d)]],
+      evidencias:[['Evidências','/evidence',d=>(d.total||0)+' evidências'],['Validação epistemológica','/evidence-validation/stats',d=>JSON.stringify(d)],['Histórico epistemológico','/evidence-validation/history',d=>JSON.stringify(d)]],
       modulos:[['API','/health',d=>d.status||'online'],['Persistência','/persistence/health',d=>JSON.stringify(d)],['Ciclo','/cognitive-cycle/health',d=>JSON.stringify(d)]]
     };
     for(const [label,path,format] of (map[screenId]||[])) await bind(screenId,label,path,format);
@@ -69,6 +86,7 @@
   }
   function wire(){
     addStyle();
+    if(document.getElementById('screen-evidencias'))ensureEpistemicPanel();
     const backend=document.getElementById('screen-backend');if(backend){
       const head=backend.querySelector('.page-head');
       if(head&&!document.getElementById('kt-api-filter')){const input=document.createElement('input');input.id='kt-api-filter';input.placeholder='Filtrar endpoint…';input.style.cssText='max-width:280px;margin-left:auto';input.oninput=renderCatalog;head.appendChild(input);}
