@@ -2245,7 +2245,9 @@ def get_evidence_for_iec(
 @app.get("/evidence/strength/{iec_id}")
 def get_evidence_strength(
     iec_id: str,
+    request: Request,
 ):
+    _hydrate_evidence_store_from_supabase(request)
     return {
         "iec_id": iec_id,
         "evidence_strength": (
@@ -2261,7 +2263,8 @@ def get_evidence_strength(
 # ==========================================================
 
 @app.get("/epistemic/iec/{iec_id}")
-def get_epistemic_conclusion(iec_id: str):
+def get_epistemic_conclusion(iec_id: str, request: Request):
+    _hydrate_evidence_store_from_supabase(request)
     """Returns the current epistemic state of one IEC with its evidence trail.
 
     This projection explains the current support state; it does not declare
@@ -2381,8 +2384,9 @@ def get_epistemic_conclusion(iec_id: str):
 
 
 @app.get("/evidence")
-def list_evidence():
-    """Lists the evidence currently held by the runtime EvidenceStore."""
+def list_evidence(request: Request):
+    """Lists persisted evidence after rebuilding the runtime EvidenceStore."""
+    _hydrate_evidence_store_from_supabase(request)
     evidences = [e.to_dict() for e in evidence_store.evidences.values()]
     evidences.sort(key=lambda e: float(e.get("confidence") or 0), reverse=True)
     return {"evidence": evidences, "total": len(evidences), "stats": evidence_store.stats()}
