@@ -2207,22 +2207,102 @@ def get_epistemic_conclusion(iec_id: str):
     contract = _to_iec_contract(ref)
     validation = evidence_validator.validate_iec(contract)
     gaps = evidence_validator.analyze_evidence_gaps(contract)
-    evidences = [e.to_dict() for e in evidence_store.get_evidence_for_iec(iec_id)]
-    evidences.sort(key=lambda e: float(e.get("confidence") or 0), reverse=True)
+    synthesis = evidence_store.compute_epistemic_synthesis(iec_id)
+
+    # A projeção mantém a evidência completa e, além disso,
+    # explicita o papel epistemológico de cada evidência diante da IEC.
+    evidence_by_id = {
+        evidence.evidence_id: evidence
+        for evidence in evidence_store.get_evidence_for_iec(iec_id)
+    }
+
+    epistemic_evidence = []
+    for relation in synthesis["relations"]:
+        evidence = evidence_by_id.get(relation["evidence_id"])
+        if evidence is None:
+            continue
+
+        item = evidence.to_dict()
+        item["epistemic_relation"] = {
+            "id": relation["id"],
+            "relation": relation["relation"],
+            "weight": relation["weight"],
+            "reason": relation["reason"],
+            "created_at": relation["created_at"],
+            "validated_at": relation["validated_at"],
+            "metadata": relation.get("metadata", {}),
+        }
+        epistemic_evidence.append(item)
+
+    epistemic_evidence.sort(
+        key=lambda item: float(item.get("confidence") or 0),
+        reverse=True,
+    )
+
+    supporting_evidence = [
+        item
+        for item in epistemic_evidence
+        if item["epistemic_relation"]["relation"] == "SUPPORTS"
+    ]
+    contradicting_evidence = [
+        item
+        for item in epistemic_evidence
+        if item["epistemic_relation"]["relation"] == "CONTRADICTS"
+    ]
+
+    support_score = synthesis["support_score"]
+    contradiction_score = synthesis["contradiction_score"]
+
+    if contradicting_evidence:
+        interpretation = (
+            f'{evidence_validator._interpret_strength(validation["classification"])} '
+            "Há evidência de divergência registrada separadamente."
+        )
+    else:
+        interpretation = evidence_validator._interpret_strength(
+            validation["classification"]
+        )
 
     return {
-        "iec": {"id": iec_id, "title": ref.title, "statement": ref.statement, "knowledge_type": ref.knowledge_type},
+        "iec": {
+            "id": iec_id,
+            "title": ref.title,
+            "statement": ref.statement,
+            "knowledge_type": ref.knowledge_type,
+        },
         "current_state": {
             "classification": validation["classification"],
             "evidence_strength": validation["evidence_strength"],
-            "evidence_count": validation["evidence_count"],
+            "support_score": support_score,
+            "contradiction_score": contradiction_score,
+            "evidence_count": synthesis["evidence_count"],
+            "supporting_count": synthesis["supporting_count"],
+            "contradicting_count": synthesis["contradicting_count"],
+            "neutral_count": synthesis["neutral_count"],
             "graph_confidence": ref.confidence,
-            "interpretation": evidence_validator._interpret_strength(validation["classification"]),
+            "interpretation": interpretation,
         },
-        "evidence": evidences,
-        "strongest_evidence": evidences[0] if evidences else None,
+        "synthesis": {
+            "support_score": support_score,
+            "contradiction_score": contradiction_score,
+            "supporting_count": synthesis["supporting_count"],
+            "contradicting_count": synthesis["contradicting_count"],
+            "neutral_count": synthesis["neutral_count"],
+        },
+        "evidence": epistemic_evidence,
+        "supporting_evidence": supporting_evidence,
+        "contradicting_evidence": contradicting_evidence,
+        "strongest_evidence": (
+            epistemic_evidence[0]
+            if epistemic_evidence
+            else None
+        ),
         "gaps": gaps["identified_gaps"],
-        "explanation": "Estado atual calculado a partir das evidências atualmente vinculadas à IEC. Não representa verdade científica absoluta.",
+        "explanation": (
+            "Estado atual calculado a partir das evidências atualmente "
+            "vinculadas à IEC. Suporte e contradição são avaliados "
+            "separadamente; a projeção não representa verdade científica absoluta."
+        ),
     }
 
 
