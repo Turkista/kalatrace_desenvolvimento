@@ -2026,6 +2026,10 @@ class EvidenceCreateIn(BaseModel):
 class EvidenceLinkIn(BaseModel):
     evidence_id: str
     iec_id: str
+    relation: str = "SUPPORTS"
+    weight: float = Field(default=1.0, ge=0.0, le=1.0)
+    reason: str = ""
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class EvidenceConfidenceIn(BaseModel):
@@ -2143,16 +2147,36 @@ def update_evidence_confidence(
 def link_evidence_to_iec(
     payload: EvidenceLinkIn,
 ):
-    _guarded(
+    relation = payload.relation.upper().strip()
+
+    if relation not in {"SUPPORTS", "CONTRADICTS", "NEUTRAL"}:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "relation inválida. Use SUPPORTS, "
+                "CONTRADICTS ou NEUTRAL."
+            ),
+        )
+
+    result = _guarded(
         evidence_store.link_to_iec,
         payload.evidence_id,
         payload.iec_id,
+        relation,
+        payload.weight,
+        payload.reason,
+        payload.metadata,
     )
 
     return {
         "evidence_id": payload.evidence_id,
         "iec_id": payload.iec_id,
         "linked": True,
+        "relation": relation,
+        "weight": payload.weight,
+        "reason": payload.reason,
+        "metadata": payload.metadata,
+        "epistemic_relation": result,
     }
 
 
