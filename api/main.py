@@ -62,6 +62,7 @@ load_dotenv(override=True)
 # ==========================================================
 
 from typing import Any, Dict, List, Optional
+from types import SimpleNamespace
 
 
 # ==========================================================
@@ -2037,6 +2038,47 @@ class EvidenceConfidenceIn(BaseModel):
     reason: str
 
 
+def _hydrate_iec_from_supabase(request: Request, iec_id: str) -> Any:
+    """Reconstrói uma IEC persistida quando ela não está no grafo local."""
+    iec = graph.get_node(iec_id)
+    if iec is not None:
+        return iec
+
+    try:
+        rows = supabase_client.get_iec(
+            request.state.access_token,
+            iec_id,
+        )
+    except SupabaseError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=str(exc),
+        ) from exc
+
+    if not rows:
+        return None
+
+    row = rows[0]
+    methodology = row.get("methodology") or {}
+    result = row.get("result") or {}
+    statement = row.get("statement") or ""
+
+    restored = SimpleNamespace(
+        id=row.get("id") or iec_id,
+        title=row.get("name") or iec_id,
+        content=statement,
+        statement=statement,
+        node_type=methodology.get("knowledge_type", "Conhecimento"),
+        knowledge_type=methodology.get("knowledge_type", "Conhecimento"),
+        confidence=float(result.get("confidence", 0.0) or 0.0),
+        status=result.get("status", "active"),
+        evidence_ids=result.get("evidence_ids", []) or [],
+        metadata=result.get("metadata", {}) or {},
+    )
+    graph.add_node(restored)
+    return restored
+
+
 def _hydrate_evidence_store_from_supabase(request: Request) -> Dict[str, int]:
     """Reconstrói o EvidenceStore do usuário autenticado antes de consultas epistemológicas."""
     try:
@@ -2324,13 +2366,13 @@ def get_evidence_strength(
 
 @app.get("/epistemic/iec/{iec_id}")
 def get_epistemic_conclusion(iec_id: str, request: Request):
-    _hydrate_evidence_store_from_supabase(request)
     """Returns the current epistemic state of one IEC with its evidence trail.
 
     This projection explains the current support state; it does not declare
     scientific truth.
     """
-    iec = graph.get_node(iec_id)
+    _hydrate_evidence_store_from_supabase(request)
+    iec = _hydrate_iec_from_supabase(request, iec_id)
     if iec is None:
         raise HTTPException(status_code=404, detail=f"IEC não encontrada: {iec_id}")
 
