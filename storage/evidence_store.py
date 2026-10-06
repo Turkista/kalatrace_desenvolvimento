@@ -454,7 +454,91 @@ class EvidenceStore:
         }
 
     # ==========================================================
-    # 12. RESTAURAR ESTADO
+    # 12. HIDRATAR A PARTIR DA PERSISTÊNCIA
+    # ==========================================================
+
+    def hydrate_from_persistence(
+        self,
+        evidence_rows: List[Dict[str, Any]],
+        link_rows: List[Dict[str, Any]],
+    ) -> Dict[str, int]:
+        """Reconstrói o estado runtime a partir das linhas persistidas.
+
+        Supabase é a fonte durável. As relações SUPPORTS / CONTRADICTS /
+        NEUTRAL são restauradas exatamente como persistidas; não são
+        inferidas novamente durante a hidratação.
+        """
+        self.evidences.clear()
+        self.iec_index.clear()
+        self.relations.clear()
+        self.iec_relation_index.clear()
+        self.history.clear()
+
+        for row in evidence_rows or []:
+            payload = dict(row)
+            payload["description"] = payload.get("description") or payload.get("content") or ""
+            payload["title"] = payload.get("title") or payload.get("id") or "Evidence"
+            payload["evidence_type"] = payload.get("evidence_type") or "unknown"
+            payload["metadata"] = dict(payload.get("metadata") or {})
+
+            evidence = EvidenceContract.from_dict(payload)
+            evidence.validate()
+            self.evidences[evidence.evidence_id] = evidence
+
+        restored_links = 0
+        for row in link_rows or []:
+            evidence_id = row.get("evidence_id")
+            iec_id = row.get("iec_id")
+            if not evidence_id or not iec_id:
+                continue
+            if evidence_id not in self.evidences:
+                continue
+
+            relation = str(row.get("relation") or "SUPPORTS").upper()
+            weight = float(row.get("weight", 1.0))
+            reason = row.get("reason") or ""
+            metadata = dict(row.get("metadata") or {})
+
+            relation_id = f"{evidence_id}:{iec_id}:epistemic"
+            epistemic_relation = EvidenceRelation(
+                id=relation_id,
+                evidence_id=str(evidence_id),
+                iec_id=str(iec_id),
+                relation=relation,
+                weight=weight,
+                reason=reason,
+                created_at=row.get("created_at") or datetime.now(UTC).isoformat(),
+                validated_at=row.get("validated_at"),
+                metadata=metadata,
+            )
+            epistemic_relation.validate()
+
+            self.relations[relation_id] = epistemic_relation
+            self.iec_relation_index.setdefault(str(iec_id), set()).add(relation_id)
+            self.iec_index.setdefault(str(iec_id), set()).add(str(evidence_id))
+
+            evidence = self.evidences[str(evidence_id)]
+            linked_iec = evidence.metadata.setdefault("linked_iec", [])
+            if str(iec_id) not in linked_iec:
+                linked_iec.append(str(iec_id))
+
+            restored_links += 1
+
+        self._register_event(
+            "evidence_store_hydrated",
+            {
+                "evidences": len(self.evidences),
+                "relations": restored_links,
+            },
+        )
+
+        return {
+            "evidences": len(self.evidences),
+            "relations": restored_links,
+        }
+
+    # ==========================================================
+    # 13. RESTAURAR ESTADO
     # ==========================================================
 
     def restore(
@@ -567,7 +651,7 @@ class EvidenceStore:
         return store
 
     # ==========================================================
-    # 13. EXPORTAR UMA EVIDÊNCIA
+    # 14. EXPORTAR UMA EVIDÊNCIA
     # ==========================================================
 
     def export_evidence(
@@ -586,7 +670,7 @@ class EvidenceStore:
         return evidence.to_dict()
 
     # ==========================================================
-    # 14. ESTATÍSTICAS DO SISTEMA
+    # 15. ESTATÍSTICAS DO SISTEMA
     # ==========================================================
 
     def stats(self) -> Dict[str, Any]:
@@ -607,7 +691,7 @@ class EvidenceStore:
         }
 
     # ==========================================================
-    # 15. LIMPAR MEMÓRIA
+    # 16. LIMPAR MEMÓRIA
     # ==========================================================
 
     def clear(self):
@@ -619,7 +703,7 @@ class EvidenceStore:
         self.history.clear()
 
     # ==========================================================
-    # 16. DEBUG
+    # 17. DEBUG
     # ==========================================================
 
     def __repr__(self):
