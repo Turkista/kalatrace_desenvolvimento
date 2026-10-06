@@ -67,7 +67,7 @@ create index if not exists iec_state_history_owner_idx on public.iec_state_histo
 
 create table if not exists public.knowledge_evolution_events (
   id uuid primary key default gen_random_uuid(),
-  iec_id text,
+  iec_id uuid references public.iecs(id) on delete cascade,
   owner_id uuid not null references auth.users(id) on delete cascade,
   event_type text not null,
   details jsonb not null default '{}'::jsonb,
