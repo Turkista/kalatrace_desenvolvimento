@@ -3,7 +3,7 @@
 -- Neo4j remains the graph projection; synchronization is tracked separately.
 
 create table if not exists public.evidence (
-  id text primary key,
+  id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
   evidence_type text not null,
   source text,
@@ -27,8 +27,8 @@ create index if not exists evidence_owner_idx on public.evidence(owner_id);
 create index if not exists evidence_type_idx on public.evidence(evidence_type);
 
 create table if not exists public.evidence_iec_links (
-  evidence_id text not null references public.evidence(id) on delete cascade,
-  iec_id text not null,
+  evidence_id uuid not null references public.evidence(id) on delete cascade,
+  iec_id uuid not null references public.iecs(id) on delete cascade,
   owner_id uuid not null references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (evidence_id, iec_id)
@@ -39,7 +39,7 @@ create index if not exists evidence_iec_links_owner_idx on public.evidence_iec_l
 
 create table if not exists public.evidence_history (
   id uuid primary key default gen_random_uuid(),
-  evidence_id text not null references public.evidence(id) on delete cascade,
+  evidence_id uuid not null references public.evidence(id) on delete cascade,
   owner_id uuid not null references auth.users(id) on delete cascade,
   event_type text not null,
   previous_confidence double precision,
@@ -54,7 +54,7 @@ create index if not exists evidence_history_owner_idx on public.evidence_history
 
 create table if not exists public.iec_state_history (
   id uuid primary key default gen_random_uuid(),
-  iec_id text not null,
+  iec_id uuid not null references public.iecs(id) on delete cascade,
   owner_id uuid not null references auth.users(id) on delete cascade,
   from_state text,
   to_state text not null,
