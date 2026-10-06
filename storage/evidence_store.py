@@ -567,7 +567,68 @@ class EvidenceStore:
         return store
 
     # ==========================================================
-    # 13. EXPORTAR UMA EVIDÊNCIA
+    # 13. HIDRATAR A PARTIR DA PERSISTÊNCIA
+    # ==========================================================
+
+    def hydrate_from_persistence(
+        self,
+        evidence_rows: List[Dict[str, Any]],
+        link_rows: List[Dict[str, Any]],
+    ) -> Dict[str, int]:
+        """
+        Reconstrói o estado epistemológico a partir do Supabase.
+
+        A persistência é a fonte durável; o EvidenceStore é apenas
+        o estado de execução do processo atual. Relações explícitas
+        preservam SUPPORTS / CONTRADICTS / NEUTRAL, peso, motivo e
+        metadados do vínculo.
+        """
+        self.clear()
+
+        hydrated_evidence = 0
+        hydrated_links = 0
+
+        for row in evidence_rows or []:
+            evidence = EvidenceContract.from_dict(row)
+            evidence.validate()
+            self.add_evidence(evidence)
+            hydrated_evidence += 1
+
+        for row in link_rows or []:
+            evidence_id = row.get("evidence_id")
+            iec_id = row.get("iec_id")
+
+            if not evidence_id or not iec_id:
+                continue
+
+            if evidence_id not in self.evidences:
+                # Não materializa um vínculo órfão no estado cognitivo.
+                continue
+
+            relation = str(row.get("relation") or "SUPPORTS").upper().strip()
+            weight = float(row.get("weight", 1.0) or 0.0)
+            reason = str(row.get("reason") or "")
+            metadata = row.get("metadata")
+            if not isinstance(metadata, dict):
+                metadata = {}
+
+            self.link_to_iec(
+                evidence_id,
+                str(iec_id),
+                relation,
+                weight,
+                reason,
+                metadata,
+            )
+            hydrated_links += 1
+
+        return {
+            "evidence": hydrated_evidence,
+            "links": hydrated_links,
+        }
+
+    # ==========================================================
+    # 14. EXPORTAR UMA EVIDÊNCIA
     # ==========================================================
 
     def export_evidence(
@@ -586,7 +647,7 @@ class EvidenceStore:
         return evidence.to_dict()
 
     # ==========================================================
-    # 14. ESTATÍSTICAS DO SISTEMA
+    # 15. ESTATÍSTICAS DO SISTEMA
     # ==========================================================
 
     def stats(self) -> Dict[str, Any]:
@@ -607,7 +668,7 @@ class EvidenceStore:
         }
 
     # ==========================================================
-    # 15. LIMPAR MEMÓRIA
+    # 16. LIMPAR MEMÓRIA
     # ==========================================================
 
     def clear(self):
@@ -619,7 +680,7 @@ class EvidenceStore:
         self.history.clear()
 
     # ==========================================================
-    # 16. DEBUG
+    # 17. DEBUG
     # ==========================================================
 
     def __repr__(self):
