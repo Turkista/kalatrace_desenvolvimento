@@ -73,6 +73,11 @@ class KnowledgeEvolutionEngine:
     def iec_states(self) -> Dict[str, Dict[str, Any]]:
         return self._state_manager.iec_states
 
+    @property
+    def state_manager(self) -> StateTransitionManager:
+        """Expose the state manager used by the evolution engine."""
+        return self._state_manager
+
     # ==========================================================
     # REGISTRO INTERNO
     # ==========================================================
