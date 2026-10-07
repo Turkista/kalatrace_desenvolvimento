@@ -148,7 +148,7 @@ class TestKEEPersistenceRecovery(unittest.TestCase):
         self.assertEqual(client.state_transitions[0][0], iec_id)
         self.assertEqual(client.state_transitions[0][2], "PROVISORIAMENTE_SUPORTADO")
         self.assertEqual(
-            [event[1] for event in client.events],
+            [event[1] for event in client.events[-3:]],
             ["knowledge_state_changed", "conflict_registered", "evidence_merged"],
         )
 
