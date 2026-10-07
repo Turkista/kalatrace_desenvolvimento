@@ -1,4 +1,3 @@
-from contracts.evidence_contract import EvidenceContract
 from contracts.iec_contract import IECContract
 from engines.knowledge_evolution.knowledge_evolution_engine import KnowledgeEvolutionEngine
 from storage.evidence_store import EvidenceStore
@@ -20,11 +19,12 @@ def test_kee_emits_persistence_sinks_for_events_and_state_transitions():
 
     iec = IECContract(
         iec_id="IEC-PERSIST-001",
-        statement="Estado epistemológico persistível",
+        title="Persistencia",
+        statement="Estado epistemologico persistivel",
         knowledge_type="observacao",
     )
     engine.register_iec(iec)
-    engine.apply_evolution(iec.iec_id, reason="teste de persistência")
+    engine.apply_evolution(iec.iec_id, reason="teste de persistencia")
 
     assert any(event == "iec_registered" for _, event, _ in events)
     assert any(event == "evolution_evaluated" for _, event, _ in events)
