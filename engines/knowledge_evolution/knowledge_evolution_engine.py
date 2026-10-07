@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Callable, Dict, Any, List, Optional
 from datetime import datetime, UTC
 
 from contracts.iec_contract import IECContract
@@ -53,8 +53,21 @@ class KnowledgeEvolutionEngine:
     documento não especifica).
     """
 
-    def __init__(self, evidence_store: EvidenceStore):
+    def __init__(
+        self,
+        evidence_store: EvidenceStore,
+        *,
+        event_sink: Optional[Callable[[Optional[str], str, Dict[str, Any]], Any]] = None,
+        state_transition_sink: Optional[
+            Callable[[str, Optional[str], str, str], Any]
+        ] = None,
+    ):
         self.evidence_store = evidence_store
+        # Optional persistence boundary. The engine remains usable without
+        # infrastructure, while repository-backed callers can make events
+        # durable without coupling the engine to Supabase.
+        self._event_sink = event_sink
+        self._state_transition_sink = state_transition_sink
 
         self._state_manager = StateTransitionManager()
         self._analyzer = EvolutionAnalyzer(self._state_manager, evidence_store)
@@ -83,11 +96,16 @@ class KnowledgeEvolutionEngine:
     # ==========================================================
 
     def _register_event(self, event: str, details: Dict[str, Any]):
-        self.evolution_history.append({
+        timestamp = datetime.now(UTC).isoformat()
+        record = {
             "event": event,
             "details": details,
-            "timestamp": datetime.now(UTC).isoformat(),
-        })
+            "timestamp": timestamp,
+        }
+        self.evolution_history.append(record)
+        if self._event_sink is not None:
+            iec_id = details.get("iec_id") if isinstance(details, dict) else None
+            self._event_sink(iec_id, event, dict(details))
 
     # ==========================================================
     # 1. REGISTRAR IEC
@@ -115,6 +133,13 @@ class KnowledgeEvolutionEngine:
         """Atualiza o estado epistemológico de uma IEC."""
         current = self._state_manager.update_state(iec_id, new_state, reason)
         transition = current["previous_states"][-1]
+        if self._state_transition_sink is not None:
+            self._state_transition_sink(
+                iec_id,
+                transition.get("from"),
+                transition["to"],
+                transition.get("reason") or reason,
+            )
         self._register_event("knowledge_state_changed", {
             "iec_id": iec_id,
             "transition": transition,
