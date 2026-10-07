@@ -6,6 +6,7 @@ from storage.evidence_store import EvidenceStore
 from engines.knowledge_evolution.state_transition import StateTransitionManager
 from engines.knowledge_evolution.evolution_analyzer import EvolutionAnalyzer
 from engines.knowledge_evolution.conflict_solver import ConflictSolver
+from epistemic.conflict_solver import ConflictSolver as WeightedConflictSolver
 from engines.knowledge_evolution.evidence_merger import EvidenceMerger
 
 
@@ -72,6 +73,7 @@ class KnowledgeEvolutionEngine:
         self._state_manager = StateTransitionManager()
         self._analyzer = EvolutionAnalyzer(self._state_manager, evidence_store)
         self._conflict_solver = ConflictSolver(self._state_manager, evidence_store)
+        self._weighted_conflict_solver = WeightedConflictSolver()
         self._evidence_merger = EvidenceMerger(self._state_manager, evidence_store)
 
         # histórico de evolução (eventos do próprio engine, não
@@ -156,7 +158,7 @@ class KnowledgeEvolutionEngine:
         self._register_event("evolution_evaluated", result)
         return result
 
-    # ==========================================================
+    # ==========================================================\n    # 5. RESOLVER CONFLITO DE EVIDÊNCIAS\n    # ==========================================================\n\n    def resolve_evidence_conflict(self, iec_id: str) -> Dict[str, Any]:\n        \"\"\"Resolve deterministicamente o balanço das evidências de uma IEC.\"\"\"\n        relations = self.evidence_store.get_relations_for_iec(iec_id)\n        links = []\n        for relation in relations:\n            evidence = self.evidence_store.get_evidence(relation.evidence_id)\n            links.append({\n                \"relation\": relation.relation,\n                \"weight\": relation.weight,\n                \"reliability\": evidence.confidence if evidence is not None else 0.0,\n                \"evidence_id\": relation.evidence_id,\n            })\n        decision = self._weighted_conflict_solver.resolve(links)\n        result = {\"iec_id\": iec_id, **decision.to_dict()}\n        self._register_event(\"evidence_conflict_resolved\", result)\n        return result\n\n    # ==========================================================
     # 5. APLICAR EVOLUÇÃO SUGERIDA
     # ==========================================================
 
