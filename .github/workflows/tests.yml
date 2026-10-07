@@ -25,5 +25,5 @@ jobs:
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
           pip install pytest
 
-      - name: Run ConflictSolver tests
-        run: python -m pytest tests/test_conflict_solver.py -q
+      - name: Run ConflictSolver and KEE integration tests
+        run: python -m pytest tests/test_conflict_solver.py tests/test_knowledge_evolution_conflict_integration.py -q
