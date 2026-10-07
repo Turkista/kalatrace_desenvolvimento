@@ -539,6 +539,46 @@ class IEC(Node):
         return contract
 
 
+    @classmethod
+    def from_contract(cls, contract: IECContract) -> "IEC":
+        """
+        Reconstrói um IEC de domínio a partir do contrato canônico.
+
+        O contrato é uma representação de fronteira; esta operação
+        reconstitui novamente a entidade rica do domínio sem executar
+        qualquer lógica de validação, inferência ou evolução.
+        """
+        if not isinstance(contract, IECContract):
+            raise TypeError("contract deve ser uma instância de IECContract")
+
+        metadata = dict(contract.metadata or {})
+        version = int(metadata.pop("version", 1))
+        related_iec_ids = list(metadata.pop("related_iec_ids", []) or [])
+
+        iec = cls(
+            id=contract.iec_id,
+            content=contract.statement,
+            domain=contract.knowledge_type,
+            metadata=metadata,
+            statement=contract.statement,
+        )
+        iec.evidence_ids = list(contract.evidence_ids or [])
+        iec.confidence = float(contract.confidence)
+        iec.status = contract.status
+        iec.version = version
+        iec.related_iec_ids = related_iec_ids
+
+        if contract.created_at:
+            iec.created_at = datetime.fromisoformat(
+                contract.created_at.replace("Z", "+00:00")
+            )
+        if contract.updated_at:
+            iec.updated_at = datetime.fromisoformat(
+                contract.updated_at.replace("Z", "+00:00")
+            )
+
+        return iec
+
     # ==========================================
     # REPRESENTAÇÃO
     # ==========================================
