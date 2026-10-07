@@ -194,7 +194,7 @@ from core.security.security_manager import SecurityManager
 
 from integrations.supabase import SupabaseClient, SupabaseError
 from integrations.auth import install_auth_middleware
-from core.persistence.request_context import get_persistence_context
+from core.persistence.request_context import (\n    get_persistence_context,\n    queue_persistence_event,\n    queue_persistence_transition,\n    drain_persistence_queue,\n)
 from integrations.neo4j import Neo4jClient
 from api.research_forms import router as research_forms_router
 from local_agent.sandbox import LocalAgentSandboxError, execute_task_spec
@@ -339,14 +339,7 @@ def _persist_kee_event(
     context = get_persistence_context()
     if context is None:
         return
-    access_token, user_id = context
-    supabase_client.record_knowledge_evolution_event(
-        access_token,
-        user_id,
-        iec_id,
-        event_type,
-        details,
-    )
+    queue_persistence_event(iec_id, event_type, details)
 
 
 def _persist_kee_state_transition(
@@ -359,15 +352,34 @@ def _persist_kee_state_transition(
     context = get_persistence_context()
     if context is None:
         return
-    access_token, user_id = context
-    supabase_client.record_iec_state_transition(
-        access_token,
-        user_id,
-        iec_id,
-        from_state,
-        to_state,
-        reason,
-    )
+    queue_persistence_transition(iec_id, from_state, to_state, reason)
+
+
+def _flush_kee_persistence(request: Request) -> None:
+    """Flush queued KEE records only after the parent IEC exists in Supabase."""
+    context = get_persistence_context()
+    if context is None:
+        return
+    access_token = context["access_token"]
+    user_id = context["user_id"]
+    events, transitions = drain_persistence_queue()
+    for iec_id, from_state, to_state, reason in transitions:
+        supabase_client.record_iec_state_transition(
+            access_token,
+            user_id,
+            iec_id,
+            from_state,
+            to_state,
+            reason,
+        )
+    for iec_id, event_type, details in events:
+        supabase_client.record_knowledge_evolution_event(
+            access_token,
+            user_id,
+            iec_id,
+            event_type,
+            details,
+        )
 
 
 cognitive_orchestrator = CognitiveOrchestrator(
@@ -1681,6 +1693,7 @@ def run_cognitive_cycle(
                 request.state.user["id"],
                 iec,
             )
+            _flush_kee_persistence(request)
             persistence["supabase"] = True
         except SupabaseError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
