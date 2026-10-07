@@ -24,6 +24,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS evidence_iec_links_evidence_iec_uidx
 DROP POLICY IF EXISTS evidence_iec_links_all_own
     ON public.evidence_iec_links;
 
+DROP POLICY IF EXISTS evidence_iec_links_own
+    ON public.evidence_iec_links;
+
 CREATE POLICY evidence_iec_links_all_own
     ON public.evidence_iec_links
     FOR ALL
