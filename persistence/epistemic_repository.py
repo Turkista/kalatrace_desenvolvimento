@@ -120,7 +120,11 @@ class EpistemicRepository:
         limit: int = 500,
     ) -> KnowledgeEvolutionEngine:
         """Rebuild current epistemological state and its transition history."""
-        engine = KnowledgeEvolutionEngine(evidence_store=evidence_store)
+        engine = KnowledgeEvolutionEngine(
+            evidence_store=evidence_store,
+            event_sink=self.record_evolution_event,
+            state_transition_sink=self.record_state_transition,
+        )
         selected = set(iec_ids) if iec_ids is not None else None
 
         for row in self.client.list_iecs(self.access_token, limit=limit) or []:
