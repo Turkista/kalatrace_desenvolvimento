@@ -31,7 +31,7 @@ class TestEpistemicPersistenceRecovery(unittest.TestCase):
             quality_score=0.90,
         )
         store.add_evidence(evidence)
-        store.link_to_iec(evidence.evidence_id, iec.iec_id)
+        store.link_to_iec(evidence.evidence_id, iec.iec_id, relation="CONTRADICTS", weight=0.75, reason="Teste de reconstrução epistemológica.", metadata={"source": "unit-test"})
 
         engine.update_state(
             iec.iec_id,
@@ -58,10 +58,15 @@ class TestEpistemicPersistenceRecovery(unittest.TestCase):
             restored.get_evidence_for_iec("IEC-RECOVERY-001")[0].confidence,
             0.80,
         )
-        self.assertEqual(
-            restored.compute_evidence_strength("IEC-RECOVERY-001"),
-            0.80,
-        )
+        synthesis = restored.compute_epistemic_synthesis("IEC-RECOVERY-001")
+        self.assertEqual(synthesis["support_score"], 0.0)
+        self.assertEqual(synthesis["contradiction_score"], 0.80)
+        self.assertEqual(synthesis["contradicting_count"], 1)
+        relation = restored.get_relations_for_iec("IEC-RECOVERY-001")[0]
+        self.assertEqual(relation.relation, "CONTRADICTS")
+        self.assertEqual(relation.weight, 0.75)
+        self.assertEqual(relation.reason, "Teste de reconstrução epistemológica.")
+        self.assertEqual(relation.metadata["source"], "unit-test")
 
     def test_knowledge_evolution_round_trip(self):
         store, engine = self._build_engine()
