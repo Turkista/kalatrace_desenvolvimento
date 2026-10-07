@@ -32,9 +32,32 @@ class EpistemicRepository:
         evidence.validate()
         return self.client.persist_evidence(self.access_token, self.user_id, evidence)
 
-    def link_evidence(self, evidence_id: str, iec_id: str) -> Any:
+    def link_evidence(
+        self,
+        evidence_id: str,
+        iec_id: str,
+        *,
+        relation: str = "SUPPORTS",
+        weight: float = 1.0,
+        reason: str = "",
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        """Persist an epistemic Evidence -> IEC relation without losing semantics."""
+        relation = str(relation or "SUPPORTS").upper().strip()
+        if relation not in {"SUPPORTS", "CONTRADICTS", "NEUTRAL"}:
+            raise ValueError("Relação epistemológica inválida.")
+        if not 0.0 <= float(weight) <= 1.0:
+            raise ValueError("weight deve estar entre 0 e 1.")
+
         return self.client.link_evidence_to_iec(
-            self.access_token, self.user_id, evidence_id, iec_id
+            self.access_token,
+            self.user_id,
+            evidence_id,
+            iec_id,
+            relation,
+            float(weight),
+            reason,
+            metadata if isinstance(metadata, dict) else {},
         )
 
     def record_evidence_change(
