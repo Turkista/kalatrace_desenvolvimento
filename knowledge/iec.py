@@ -552,6 +552,7 @@ class IEC(Node):
             raise TypeError("contract deve ser uma instância de IECContract")
 
         metadata = dict(contract.metadata or {})
+        metadata.setdefault("title", contract.title)
         version = int(metadata.pop("version", 1))
         related_iec_ids = list(metadata.pop("related_iec_ids", []) or [])
 
