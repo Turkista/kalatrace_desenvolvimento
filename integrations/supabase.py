@@ -482,6 +482,21 @@ class SupabaseClient:
             },
         )
 
+    def list_knowledge_evolution_events(
+        self,
+        access_token: str,
+        *,
+        iec_id: Optional[str] = None,
+        limit: int = 500,
+    ) -> Any:
+        filters = {
+            "order": "created_at.asc",
+            "limit": str(min(max(limit, 1), 500)),
+        }
+        if iec_id:
+            filters["iec_id"] = f"eq.{iec_id}"
+        return self.select("knowledge_evolution_events", access_token, filters=filters)
+
     def list_iecs(self, access_token: str, limit: int = 500) -> Any:
         return self.select(
             "iecs",
