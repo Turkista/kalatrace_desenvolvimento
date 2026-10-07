@@ -1,0 +1,6 @@
+-- KALATRACE migration-history reconciliation.
+-- The evidence -> IEC relation schema is already represented by
+-- 20261007135646_persistent_epistemic_state.sql and is present in the
+-- remote schema under migration version 20261007135705.
+-- Keep this migration version as a no-op so local and remote histories
+-- remain aligned without replaying DDL against an already-live schema.
