@@ -85,7 +85,7 @@ class EpistemicRepository:
             evidence_id = link.get("evidence_id")
             iec_id = link.get("iec_id")
             if evidence_id and iec_id:
-                store.link_to_iec(evidence_id, iec_id)
+                store.link_to_iec(evidence_id, iec_id, relation=str(link.get("relation") or "SUPPORTS").upper().strip(), weight=float(link.get("weight", 1.0) or 0.0), reason=str(link.get("reason") or ""), metadata=link.get("metadata") if isinstance(link.get("metadata"), dict) else {})
 
         return store
 
