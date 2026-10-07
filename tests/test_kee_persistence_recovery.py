@@ -5,6 +5,18 @@ from storage.evidence_store import EvidenceStore
 
 
 class FakeSupabaseClient:
+    def __init__(self):
+        self.state_transitions = []
+        self.events = []
+
+    def record_iec_state_transition(self, access_token, user_id, iec_id, from_state, to_state, reason):
+        self.state_transitions.append((iec_id, from_state, to_state, reason))
+        return {"ok": True}
+
+    def record_knowledge_evolution_event(self, access_token, user_id, iec_id, event_type, details=None):
+        self.events.append((iec_id, event_type, details or {}))
+        return {"ok": True}
+
     def list_iecs(self, access_token, limit=500):
         return [{
             "id": "00000000-0000-0000-0000-000000000001",
@@ -88,8 +100,9 @@ class FakeSupabaseClient:
 
 class TestKEEPersistenceRecovery(unittest.TestCase):
     def test_reconstructs_state_history_events_conflicts_and_syntheses(self):
+        client = FakeSupabaseClient()
         repository = EpistemicRepository(
-            FakeSupabaseClient(),
+            client,
             access_token="token",
             user_id="00000000-0000-0000-0000-000000000099",
         )
@@ -123,6 +136,20 @@ class TestKEEPersistenceRecovery(unittest.TestCase):
         self.assertEqual(
             engine.list_conflicts_for_iec(iec_id)[-1]["conflict_id"],
             "CONFLICT-8",
+        )
+
+        self.assertIsInstance(store, EvidenceStore)
+
+        engine.update_state(iec_id, "PROVISORIAMENTE_SUPORTADO", "Nova evidência")
+        engine.register_conflict(iec_id, iec_id, "Novo conflito persistível")
+        engine.merge_evidence([iec_id, iec_id], "Síntese persistível")
+
+        self.assertEqual(len(client.state_transitions), 1)
+        self.assertEqual(client.state_transitions[0][0], iec_id)
+        self.assertEqual(client.state_transitions[0][2], "PROVISORIAMENTE_SUPORTADO")
+        self.assertEqual(
+            [event[1] for event in client.events],
+            ["knowledge_state_changed", "conflict_registered", "evidence_merged"],
         )
 
         self.assertIsInstance(store, EvidenceStore)
