@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Callable, Dict, Any, List, Optional
 
 from acquisition.manual_acquisition import ManualAcquisition
 from engines.base.base_engine import CoreEngine
@@ -80,7 +80,14 @@ class CognitiveOrchestrator:
     anterior -- não faz sentido chamá-lo isoladamente por IEC.
     """
 
-    def __init__(self, evidence_store: EvidenceStore = None, graph: KnowledgeGraph = None):
+    def __init__(
+        self,
+        evidence_store: EvidenceStore = None,
+        graph: KnowledgeGraph = None,
+        *,
+        event_sink: Optional[Callable[[Optional[str], str, Dict[str, Any]], Any]] = None,
+        state_transition_sink: Optional[Callable[[str, Optional[str], str, str], Any]] = None,
+    ):
         self.evidence_store = evidence_store or EvidenceStore()
         self.graph = graph or KnowledgeGraph()
 
@@ -88,7 +95,11 @@ class CognitiveOrchestrator:
         self.core_engine = CoreEngine()
         self.validation_engine = ValidationEngine(self.graph, self.evidence_store)
         self.ontology_validator = OntologyValidator()
-        self.evolution_engine = KnowledgeEvolutionEngine(self.evidence_store)
+        self.evolution_engine = KnowledgeEvolutionEngine(
+            self.evidence_store,
+            event_sink=event_sink,
+            state_transition_sink=state_transition_sink,
+        )
         self.curiosity_engine = CuriosityEngine(self.evidence_store)
         self.research_engine = ScientificResearchEngine(self.evidence_store)
         self.context_engine = ScientificContextEngine(
