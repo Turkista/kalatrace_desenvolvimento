@@ -48,6 +48,7 @@ from __future__ import annotations
 # ==========================================================
 
 import os
+from contextvars import ContextVar
 import subprocess
 
 from dotenv import load_dotenv
@@ -126,6 +127,39 @@ from skills.robotics.robotics_api import RoboticsAPI
 from validation.validation_engine import ValidationEngine
 from validation.evidence_validation_engine import EvidenceValidationEngine
 from storage.evidence_store import EvidenceStore
+
+
+# ==========================================================
+# REQUEST-SCOPED EVIDENCE STATE
+# ==========================================================
+#
+# The epistemic store is request-scoped so authenticated users never share
+# mutable evidence state through the process-global FastAPI object. Existing
+# engines receive this proxy and transparently resolve the store bound to the
+# current request context.
+# ==========================================================
+
+_evidence_store_context: ContextVar[EvidenceStore | None] = ContextVar(
+    "kalatrace_evidence_store",
+    default=None,
+)
+
+
+class EvidenceStoreProxy:
+    """Delegate EvidenceStore operations to the current request's store."""
+
+    def _store(self) -> EvidenceStore:
+        store = _evidence_store_context.get()
+        if store is None:
+            raise RuntimeError("EvidenceStore não está vinculado à requisição atual.")
+        return store
+
+    def __getattr__(self, name):
+        return getattr(self._store(), name)
+
+
+request_evidence_store = EvidenceStoreProxy()
+
 from contracts.iec_contract import IECContract
 
 
@@ -280,10 +314,20 @@ robotics_api = RoboticsAPI(
 # EVIDENCE / VALIDATION
 # ==========================================================
 
-evidence_store = EvidenceStore()
+@app.middleware("http")
+async def request_scoped_evidence_store(request: Request, call_next):
+    """Bind an isolated mutable EvidenceStore to each HTTP request."""
+    token = _evidence_store_context.set(EvidenceStore())
+    try:
+        return await call_next(request)
+    finally:
+        _evidence_store_context.reset(token)
 
-# O Cognitive Orchestrator usa o mesmo grafo e EvidenceStore da API.
-# Isso evita dois estados cognitivos concorrentes dentro do processo.
+
+# Engines keep a single stable dependency object, but the proxy resolves to
+# the isolated EvidenceStore of the current request.
+evidence_store = request_evidence_store
+
 cognitive_orchestrator = CognitiveOrchestrator(
     evidence_store=evidence_store,
     graph=graph,
