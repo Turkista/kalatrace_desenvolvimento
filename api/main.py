@@ -194,7 +194,12 @@ from core.security.security_manager import SecurityManager
 
 from integrations.supabase import SupabaseClient, SupabaseError
 from integrations.auth import install_auth_middleware
-from core.persistence.request_context import (\n    get_persistence_context,\n    queue_persistence_event,\n    queue_persistence_transition,\n    drain_persistence_queue,\n)
+from core.persistence.request_context import (
+    get_persistence_context,
+    queue_persistence_event,
+    queue_persistence_transition,
+    drain_persistence_queue,
+)
 from integrations.neo4j import Neo4jClient
 from api.research_forms import router as research_forms_router
 from local_agent.sandbox import LocalAgentSandboxError, execute_task_spec
