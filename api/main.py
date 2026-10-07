@@ -194,6 +194,7 @@ from core.security.security_manager import SecurityManager
 
 from integrations.supabase import SupabaseClient, SupabaseError
 from integrations.auth import install_auth_middleware
+from core.persistence.request_context import get_persistence_context
 from integrations.neo4j import Neo4jClient
 from api.research_forms import router as research_forms_router
 from local_agent.sandbox import LocalAgentSandboxError, execute_task_spec
@@ -328,9 +329,52 @@ async def request_scoped_evidence_store(request: Request, call_next):
 # the isolated EvidenceStore of the current request.
 evidence_store = request_evidence_store
 
+
+def _persist_kee_event(
+    iec_id: Optional[str],
+    event_type: str,
+    details: Dict[str, Any],
+) -> None:
+    """Persist KEE lifecycle events using the authenticated request context."""
+    context = get_persistence_context()
+    if context is None:
+        return
+    access_token, user_id = context
+    supabase_client.record_knowledge_evolution_event(
+        access_token,
+        user_id,
+        iec_id,
+        event_type,
+        details,
+    )
+
+
+def _persist_kee_state_transition(
+    iec_id: str,
+    from_state: Optional[str],
+    to_state: str,
+    reason: str,
+) -> None:
+    """Persist KEE state transitions using the authenticated request context."""
+    context = get_persistence_context()
+    if context is None:
+        return
+    access_token, user_id = context
+    supabase_client.record_iec_state_transition(
+        access_token,
+        user_id,
+        iec_id,
+        from_state,
+        to_state,
+        reason,
+    )
+
+
 cognitive_orchestrator = CognitiveOrchestrator(
     evidence_store=evidence_store,
     graph=graph,
+    event_sink=_persist_kee_event,
+    state_transition_sink=_persist_kee_state_transition,
 )
 
 structural_validator = ValidationEngine(
