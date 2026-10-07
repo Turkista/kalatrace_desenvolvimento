@@ -155,6 +155,48 @@ class EpistemicRepository:
             if row.get("to_state"):
                 state["current_state"] = row["to_state"]
 
+        # The event stream is the durable source for KEE-level history.
+        # It also contains full conflict/synthesis records emitted by the
+        # engine, so recovery does not depend on an in-memory snapshot.
+        events = self.client.list_knowledge_evolution_events(
+            self.access_token, limit=limit
+        ) or []
+        for row in events:
+            current_id = row.get("iec_id")
+            if current_id and selected is not None and current_id not in selected:
+                continue
+
+            event_type = str(row.get("event_type") or "").strip()
+            details = row.get("details")
+            if not isinstance(details, dict):
+                details = {}
+
+            engine.evolution_history.append({
+                "event": event_type,
+                "details": details,
+                "timestamp": row.get("created_at"),
+            })
+
+            if event_type == "conflict_registered":
+                conflict_id = details.get("conflict_id")
+                if conflict_id:
+                    engine._conflict_solver.conflicts[str(conflict_id)] = dict(details)
+            elif event_type == "conflict_resolved":
+                conflict_id = details.get("conflict_id")
+                if conflict_id:
+                    engine._conflict_solver.conflicts[str(conflict_id)] = dict(details)
+            elif event_type == "evidence_merged":
+                synthesis_id = details.get("synthesis_id")
+                if synthesis_id:
+                    engine._evidence_merger.syntheses[str(synthesis_id)] = dict(details)
+
+        engine._conflict_solver._next_id = engine._next_numeric_id(
+            engine._conflict_solver.conflicts, "CONFLICT-"
+        )
+        engine._evidence_merger._next_id = engine._next_numeric_id(
+            engine._evidence_merger.syntheses, "SYNTHESIS-"
+        )
+
         return engine
 
     def load_cycle(
