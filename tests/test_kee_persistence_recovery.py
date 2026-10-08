@@ -320,5 +320,46 @@ class TestKEEPersistenceRecovery(unittest.TestCase):
         self.assertEqual(client.events, [])
 
 
+    def test_pagination_does_not_truncate_at_500(self):
+        from integrations.supabase import SupabaseClient, SupabaseSettings
+
+        client = SupabaseClient(
+            SupabaseSettings(url="https://example.invalid", publishable_key="test")
+        )
+        calls = []
+
+        def fake_select(table, access_token, *, select="*", filters=None):
+            calls.append(dict(filters or {}))
+            offset = int((filters or {}).get("offset", "0"))
+            limit = int((filters or {}).get("limit", "500"))
+            total = 1001
+            remaining = max(total - offset, 0)
+            size = min(limit, remaining)
+            return [{"id": offset + i} for i in range(size)]
+
+        client.select = fake_select
+
+        rows = client._select_all_pages(
+            "knowledge_evolution_events",
+            "token",
+            filters={"order": "created_at.asc"},
+        )
+
+        self.assertEqual(len(rows), 1001)
+        self.assertEqual(calls[0]["limit"], "500")
+        self.assertEqual(calls[0]["offset"], "0")
+        self.assertEqual(calls[1]["offset"], "500")
+        self.assertEqual(calls[2]["offset"], "1000")
+        self.assertEqual(len(calls), 3)
+
+        limited = client._select_all_pages(
+            "knowledge_evolution_events",
+            "token",
+            filters={"order": "created_at.asc"},
+            max_rows=750,
+        )
+        self.assertEqual(len(limited), 750)
+
+
 if __name__ == "__main__":
     unittest.main()
