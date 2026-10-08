@@ -576,7 +576,7 @@ async function ktRefreshBackendStatus(){
   el.innerHTML='<span class="kt-api-dot '+(ok?'ok':'bad')+'"></span> API '+(ok?'online':'offline')+' · Neo4j '+(neo?'online':'offline');
 }
 function clearForm(btn){btn.closest('.form-card').querySelectorAll('input,select,textarea').forEach(x=>x.value='')}
-function showScreen(id){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');document.querySelector('.content').scrollTop=0;document.getElementById('sidebar').classList.remove('open');if(id==='infraestrutura')ktInfrastructureRefresh()}
+function showScreen(id){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');document.querySelector('.content').scrollTop=0;document.getElementById('sidebar').classList.remove('open');if(id==='infraestrutura'){ktInfrastructureRefresh();ktWatchdogRefresh()}}
 document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>showScreen(n.dataset.screen)));document.getElementById('menuBtn').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
 </script>
 <div id="kt-auth-modal">
@@ -746,17 +746,17 @@ async function ktWatchdogRun(){
 }
 async function ktWatchdogRefresh(){
   try{
-    const result=await ktApi('/infrastructure/watchdog/run',{method:'POST',body:'{}'});
     const ev=await ktApi('/infrastructure/watchdog/events');
     const h=await ktApi('/infrastructure/watchdog/history?limit=20');
-    const status=result.status||'HEALTHY';
+    const latest=(h.snapshots||[])[0];
+    const status=latest?.overall_status||'HEALTHY';
     ktInfraBadge(document.getElementById('watchdog-badge'),status.toLowerCase());
-    document.getElementById('watchdog-score').textContent=(result.health_score??'—')+(result.health_score!=null?' / 100':'');
+    document.getElementById('watchdog-score').textContent=(latest?.health_score??'—')+(latest?.health_score!=null?' / 100':'');
     document.getElementById('watchdog-status').textContent=status==='HEALTHY'?'Operacional':status==='WARNING'?'Requer atenção':'Intervenção necessária';
-    document.getElementById('watchdog-last-run').textContent=result.measured_at?new Date(result.measured_at).toLocaleString('pt-BR'):'—';
+    document.getElementById('watchdog-last-run').textContent=latest?.measured_at?new Date(latest.measured_at).toLocaleString('pt-BR'):'—';
     document.getElementById('watchdog-open-alerts').textContent=Number((ev.events||[]).length).toLocaleString('pt-BR');
     document.getElementById('watchdog-history').textContent=Number((h.snapshots||[]).length).toLocaleString('pt-BR');
-    const e=result.evaluation||{};
+    const e=latest?.evaluation||{};
     document.getElementById('watchdog-evaluation').innerHTML=
       '<span style="flex:1">Banco: <b>'+Number(e.database_usage_percent||0).toFixed(2)+'%</b> · crescimento: <b>'+ (e.database_growth_percent==null?'sem histórico':Number(e.database_growth_percent).toFixed(2)+'%') +'</b></span>'+
       '<span>Storage: <b>'+Number(e.storage_usage_percent||0).toFixed(2)+'%</b> · crescimento: <b>'+ (e.storage_growth_percent==null?'sem histórico':Number(e.storage_growth_percent).toFixed(2)+'%') +'</b></span>';
