@@ -3347,6 +3347,20 @@ def infrastructure_usage(request: Request):
         raise HTTPException(status_code=500, detail="Não foi possível consultar o uso da infraestrutura.") from exc
 
 
+@app.post("/infrastructure/watchdog/run")
+def infrastructure_watchdog_run(request: Request):
+    """Executa uma verificação do Watchdog e persiste snapshot/eventos."""
+    try:
+        return supabase_client.rpc(
+            "run_kalatrace_watchdog",
+            request.state.access_token,
+        )
+    except SupabaseError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Não foi possível executar o Watchdog da infraestrutura.") from exc
+
+
 # ==========================================================
 # WORKSPACE GOVERNANCE / PROJECT TEMPLATES / DURABLE CMC
 # ==========================================================
