@@ -193,7 +193,7 @@ from core.security.security_manager import SecurityManager
 # ==========================================================
 
 from integrations.supabase import SupabaseClient, SupabaseError
-from integrations.auth import install_auth_middleware
+from integrations.auth import install_auth_middleware, user_is_allowed
 from core.persistence.request_context import (
     get_persistence_context,
     queue_persistence_event,
@@ -501,10 +501,17 @@ def auth_login(
     payload: AuthCredentialsIn,
 ):
     try:
-        return supabase_client.sign_in(
+        result = supabase_client.sign_in(
             payload.email,
             payload.password,
         )
+        user = result.get("user") if isinstance(result, dict) else None
+        if user and not user_is_allowed(user):
+            raise HTTPException(
+                status_code=403,
+                detail="Esta conta não está autorizada a acessar o KALATRACE.",
+            )
+        return result
 
     except SupabaseError as exc:
         raise HTTPException(
