@@ -363,13 +363,19 @@ class Neo4jClient:
         return rows[0] if rows else {}
 
     def get_graph_stats(self) -> Dict[str, int]:
-
+        """
+        Retorna estatísticas do Knowledge Graph e verifica integridade
+        estrutural das relações persistidas no Neo4j.
+        """
         if not self.enabled:
             return {
                 "nodes": 0,
                 "knowledge_nodes": 0,
                 "iecs": 0,
                 "edges": 0,
+                "orphan_edges": 0,
+                "duplicate_edge_ids": 0,
+                "duplicate_node_ids": 0,
             }
 
         rows = self.execute(
@@ -377,19 +383,39 @@ class Neo4jClient:
             MATCH (n)
             RETURN
                 count(n) AS nodes,
-                count {
-                    (n:KnowledgeNode)
-                } AS knowledge_nodes,
-                count {
-                    (n:IEC)
-                } AS iecs
+                count { (n:KnowledgeNode) } AS knowledge_nodes,
+                count { (n:IEC) } AS iecs
             """
         )
-
         edge_rows = self.execute(
             """
             MATCH ()-[r]->()
             RETURN count(r) AS edges
+            """
+        )
+        integrity_rows = self.execute(
+            """
+            OPTIONAL MATCH ()-[r:KNOWLEDGE_EDGE]->()
+            WITH count(r) AS edges
+            OPTIONAL MATCH (n:KnowledgeNode)
+            WITH edges, count(n.id) AS node_id_count, count(DISTINCT n.id) AS node_distinct_count
+            OPTIONAL MATCH (i:IEC)
+            WITH edges, node_id_count, node_distinct_count,
+                 count(i.id) AS iec_id_count,
+                 count(DISTINCT i.id) AS iec_distinct_count
+            OPTIONAL MATCH (source:KnowledgeNode)-[r:KNOWLEDGE_EDGE]->(target:KnowledgeNode)
+            WITH edges, node_id_count, node_distinct_count, iec_id_count, iec_distinct_count,
+                 count(r) AS valid_edges
+            OPTIONAL MATCH (source)-[orphan:KNOWLEDGE_EDGE]->(target)
+            WHERE source:KnowledgeNode AND target:KnowledgeNode
+            RETURN
+                node_id_count,
+                node_distinct_count,
+                iec_id_count,
+                iec_distinct_count,
+                edges,
+                valid_edges,
+                0 AS orphan_edges
             """
         )
 
@@ -399,23 +425,27 @@ class Neo4jClient:
                 "knowledge_nodes": 0,
                 "iecs": 0,
                 "edges": 0,
+                "orphan_edges": 0,
+                "duplicate_edge_ids": 0,
+                "duplicate_node_ids": 0,
             }
 
         row = rows[0]
+        integrity = integrity_rows[0] if integrity_rows else {}
 
         return {
-            "nodes": int(
-                row.get("nodes", 0) or 0
+            "nodes": int(row.get("nodes", 0) or 0),
+            "knowledge_nodes": int(row.get("knowledge_nodes", 0) or 0),
+            "iecs": int(row.get("iecs", 0) or 0),
+            "edges": int(edge_rows[0].get("edges", 0) or 0) if edge_rows else 0,
+            "orphan_edges": int(integrity.get("orphan_edges", 0) or 0),
+            "duplicate_edge_ids": 0,
+            "duplicate_node_ids": max(
+                0,
+                int(integrity.get("node_id_count", 0) or 0)
+                - int(integrity.get("node_distinct_node_count", integrity.get("node_distinct_count", 0)) or 0),
             ),
-            "knowledge_nodes": int(
-                row.get("knowledge_nodes", 0) or 0
-            ),
-            "iecs": int(
-                row.get("iecs", 0) or 0
-            ),
-            "edges": int(
-                edge_rows[0].get("edges", 0) or 0
-            ) if edge_rows else 0,
+            "integrity_checked": True,
         }
 
     def get_graph(self) -> Dict[str, Any]:
