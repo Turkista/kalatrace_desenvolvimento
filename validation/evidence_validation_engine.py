@@ -57,12 +57,17 @@ class EvidenceValidationEngine:
         """
 
 
-        if not isinstance(
-            evidence_store,
-            EvidenceStore,
-        ):
+        is_store = isinstance(evidence_store, EvidenceStore)
+        is_request_scoped_proxy = getattr(
+            type(evidence_store),
+            "__evidence_store_proxy__",
+            False,
+        )
+
+        if not is_store and not is_request_scoped_proxy:
             raise TypeError(
-                "evidence_store must be an EvidenceStore."
+                "evidence_store must be an EvidenceStore or a "
+                "request-scoped EvidenceStore proxy."
             )
 
 
