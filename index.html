@@ -336,6 +336,10 @@
     </div>
     <div class="actions" style="margin-top:10px"><button class="primary" onclick="ktWatchdogRun()"><i class="ti ti-shield-check"></i> Executar verificação agora</button><span id="watchdog-msg" class="fs11 muted"></span></div>
     <div style="margin-top:12px"><div class="card-title fs12">Alertas ativos</div><div id="watchdog-events"><span class="muted">Nenhum alerta carregado.</span></div></div>
+    <div class="grid-2" style="margin-top:12px">
+      <div class="card" style="margin:0"><div class="card-head"><h3 class="card-title">Runtime checks</h3><span class="fs11 muted">KEE + Neo4j</span></div><div id="watchdog-runtime"><span class="muted">Carregando...</span></div></div>
+      <div class="card" style="margin:0"><div class="card-head"><h3 class="card-title">Tendência operacional</h3><span class="fs11 muted">últimas execuções</span></div><div id="watchdog-trends"><span class="muted">Carregando...</span></div></div>
+    </div>
   </div>
   <div class="card"><div class="card-head"><h2 class="card-title">Configuração do projeto</h2></div>
     <div class="grid-3">
@@ -753,6 +757,8 @@ async function ktWatchdogRefresh(){
   try{
     const ev=await ktApi('/infrastructure/watchdog/events');
     const h=await ktApi('/infrastructure/watchdog/history?limit=20');
+    const rt=await ktApi('/infrastructure/watchdog/runtime?limit=20');
+    const tr=await ktApi('/infrastructure/watchdog/trends?limit=20');
     const latest=(h.snapshots||[])[0];
     const status=latest?.overall_status||'HEALTHY';
     ktInfraBadge(document.getElementById('watchdog-badge'),status.toLowerCase());
@@ -771,6 +777,9 @@ async function ktWatchdogRefresh(){
     document.getElementById('watchdog-evaluation').innerHTML=
       '<span style="flex:1">Banco: <b>'+Number(e.database_usage_percent||0).toFixed(2)+'%</b> · crescimento: <b>'+ (e.database_growth_percent==null?'sem histórico':Number(e.database_growth_percent).toFixed(2)+'%') +'</b></span>'+
       '<span>Storage: <b>'+Number(e.storage_usage_percent||0).toFixed(2)+'%</b> · crescimento: <b>'+ (e.storage_growth_percent==null?'sem histórico':Number(e.storage_growth_percent).toFixed(2)+'%') +'</b></span>';
+    document.getElementById('watchdog-runtime').innerHTML=(rt.checks||[]).slice(0,8).map(x=>'<div class="row-item"><span class="badge '+(x.status==='CRITICAL'?'danger':x.status==='WARNING'?'warning':'teal')+'">'+x.status+'</span><span style="flex:1;margin-left:8px"><b>'+x.check_type+'</b><span class="fs11 muted" style="display:block">'+new Date(x.checked_at).toLocaleString('pt-BR')+'</span></span></div>').join('')||'<span class="muted">Nenhum runtime check registrado.</span>';
+    const trendRows=(tr.snapshots||[]).slice(-8);
+    document.getElementById('watchdog-trends').innerHTML=trendRows.map(x=>'<div class="row-item"><span style="flex:1"><b>'+new Date(x.measured_at).toLocaleString('pt-BR')+'</b><span class="fs11 muted" style="display:block">DB '+Number(x.database_bytes||0).toLocaleString('pt-BR')+' bytes · Storage '+Number(x.storage_bytes||0).toLocaleString('pt-BR')+' bytes</span></span><b>'+Number(x.health_score||0)+'/100</b></div>').join('')||'<span class="muted">Sem histórico suficiente.</span>';
     document.getElementById('watchdog-events').innerHTML=(ev.events||[]).map(x=>'<div class="row-item"><span class="badge '+(x.severity==='CRITICAL'?'danger':'warning')+'">'+x.severity+'</span><span style="flex:1;margin-left:8px"><b>'+x.code+'</b><span class="fs11 muted" style="display:block">'+x.message+'</span></span><span class="fs11 muted">'+Number(x.current_value||0).toFixed(2)+'%</span></div>').join('')||'<span class="muted">Nenhum alerta ativo.</span>';
   }catch(e){
     document.getElementById('watchdog-msg').textContent='Não foi possível atualizar o Watchdog: '+e.message;
