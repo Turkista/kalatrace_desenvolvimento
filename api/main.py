@@ -198,7 +198,8 @@ from core.persistence.request_context import (
     get_persistence_context,
     queue_persistence_event,
     queue_persistence_transition,
-    drain_persistence_queue,
+    get_pending_persistence_queue,
+    clear_persistence_queue,
 )
 from integrations.neo4j import Neo4jClient
 from api.research_forms import router as research_forms_router
@@ -367,7 +368,7 @@ def _flush_kee_persistence(request: Request) -> None:
         return
     access_token = context["access_token"]
     user_id = context["user_id"]
-    events, transitions = drain_persistence_queue()
+    events, transitions = get_pending_persistence_queue()
     for iec_id, from_state, to_state, reason in transitions:
         supabase_client.record_iec_state_transition(
             access_token,
@@ -385,6 +386,7 @@ def _flush_kee_persistence(request: Request) -> None:
             event_type,
             details,
         )
+    clear_persistence_queue()
 
 
 cognitive_orchestrator = CognitiveOrchestrator(
