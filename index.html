@@ -329,6 +329,11 @@
       <div class="metric"><div class="metric-label">Histórico</div><div id="watchdog-history" class="metric-value">—</div><div class="metric-delta">snapshots registrados</div></div>
     </div>
     <div id="watchdog-evaluation" class="row-item"><span style="flex:1">Aguardando primeira execução.</span></div>
+    <div class="grid-3" style="margin-top:10px">
+      <div class="metric"><div class="metric-label">Saúde epistemológica</div><div id="watchdog-epistemic" class="metric-value" style="font-size:16px">—</div></div>
+      <div class="metric"><div class="metric-label">Persistência / recuperação</div><div id="watchdog-persistence" class="metric-value" style="font-size:16px">—</div></div>
+      <div class="metric"><div class="metric-label">Knowledge Graph / Neo4j</div><div id="watchdog-graph" class="metric-value" style="font-size:16px">—</div></div>
+    </div>
     <div class="actions" style="margin-top:10px"><button class="primary" onclick="ktWatchdogRun()"><i class="ti ti-shield-check"></i> Executar verificação agora</button><span id="watchdog-msg" class="fs11 muted"></span></div>
     <div style="margin-top:12px"><div class="card-title fs12">Alertas ativos</div><div id="watchdog-events"><span class="muted">Nenhum alerta carregado.</span></div></div>
   </div>
@@ -757,6 +762,12 @@ async function ktWatchdogRefresh(){
     document.getElementById('watchdog-open-alerts').textContent=Number((ev.events||[]).length).toLocaleString('pt-BR');
     document.getElementById('watchdog-history').textContent=Number((h.snapshots||[]).length).toLocaleString('pt-BR');
     const e=latest?.evaluation||{};
+    const ep=latest?.epistemic_health||e.epistemic_health||'—';
+    const ps=latest?.persistence_health||e.persistence_health||e.runtime_persistence_health||'—';
+    const gr=latest?.graph_health||e.graph_health||e.runtime_graph_health||'—';
+    document.getElementById('watchdog-epistemic').textContent=ep;
+    document.getElementById('watchdog-persistence').textContent=ps;
+    document.getElementById('watchdog-graph').textContent=gr;
     document.getElementById('watchdog-evaluation').innerHTML=
       '<span style="flex:1">Banco: <b>'+Number(e.database_usage_percent||0).toFixed(2)+'%</b> · crescimento: <b>'+ (e.database_growth_percent==null?'sem histórico':Number(e.database_growth_percent).toFixed(2)+'%') +'</b></span>'+
       '<span>Storage: <b>'+Number(e.storage_usage_percent||0).toFixed(2)+'%</b> · crescimento: <b>'+ (e.storage_growth_percent==null?'sem histórico':Number(e.storage_growth_percent).toFixed(2)+'%') +'</b></span>';
