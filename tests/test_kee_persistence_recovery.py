@@ -209,5 +209,116 @@ class TestKEEPersistenceRecovery(unittest.TestCase):
         )
 
 
+    def test_reconstructs_multiple_iecs_evidence_and_all_epistemic_relations(self):
+        client = FakeSupabaseClient()
+        client._iecs = [
+            {
+                "id": "00000000-0000-0000-0000-000000000001",
+                "name": "IEC A",
+                "statement": "Primeira IEC",
+                "methodology": {"knowledge_type": "hypothesis"},
+                "result": {"confidence": 0.8, "status": "active", "evidence_ids": ["E1", "E2"]},
+                "created_at": "2026-10-07T11:00:00+00:00",
+                "updated_at": "2026-10-07T11:00:00+00:00",
+            },
+            {
+                "id": "00000000-0000-0000-0000-000000000002",
+                "name": "IEC B",
+                "statement": "Segunda IEC",
+                "methodology": {"knowledge_type": "observation"},
+                "result": {"confidence": 0.6, "status": "active", "evidence_ids": ["E2", "E3"]},
+                "created_at": "2026-10-07T11:01:00+00:00",
+                "updated_at": "2026-10-07T11:01:00+00:00",
+            },
+        ]
+        client._evidence = [
+            {
+                "id": "E1", "title": "Evidência 1", "description": "Suporte",
+                "evidence_type": "paper", "source": "Fonte A", "confidence": 0.9,
+                "quality_score": 0.8, "version": 1,
+                "created_at": "2026-10-07T11:02:00+00:00",
+                "updated_at": "2026-10-07T11:02:00+00:00", "metadata": {},
+            },
+            {
+                "id": "E2", "title": "Evidência 2", "description": "Contradição",
+                "evidence_type": "study", "source": "Fonte B", "confidence": 0.7,
+                "quality_score": 0.7, "version": 1,
+                "created_at": "2026-10-07T11:03:00+00:00",
+                "updated_at": "2026-10-07T11:03:00+00:00", "metadata": {},
+            },
+            {
+                "id": "E3", "title": "Evidência 3", "description": "Contexto",
+                "evidence_type": "review", "source": "Fonte C", "confidence": 0.5,
+                "quality_score": 0.6, "version": 1,
+                "created_at": "2026-10-07T11:04:00+00:00",
+                "updated_at": "2026-10-07T11:04:00+00:00", "metadata": {},
+            },
+        ]
+        client._links = [
+            {"evidence_id": "E1", "iec_id": "00000000-0000-0000-0000-000000000001",
+             "relation": "SUPPORTS", "weight": 0.8, "reason": "Suporte direto", "metadata": {"source": "A"}},
+            {"evidence_id": "E2", "iec_id": "00000000-0000-0000-0000-000000000001",
+             "relation": "CONTRADICTS", "weight": 0.6, "reason": "Resultado contrário", "metadata": {"source": "B"}},
+            {"evidence_id": "E2", "iec_id": "00000000-0000-0000-0000-000000000002",
+             "relation": "SUPPORTS", "weight": 0.5, "reason": "Suporte parcial", "metadata": {}},
+            {"evidence_id": "E3", "iec_id": "00000000-0000-0000-0000-000000000002",
+             "relation": "NEUTRAL", "weight": 1.0, "reason": "Contexto", "metadata": {"kind": "context"}},
+        ]
+
+        def list_iecs(access_token, limit=500):
+            return list(client._iecs)
+
+        def list_evidence(access_token, limit=500):
+            return list(client._evidence)
+
+        def list_links(access_token, limit=500):
+            return list(client._links)
+
+        client.list_iecs = list_iecs
+        client.list_evidence = list_evidence
+        client.list_evidence_iec_links = list_links
+        client.list_all_iec_state_history = lambda access_token, limit=500: []
+        client.list_knowledge_evolution_events = lambda access_token, limit=500: []
+
+        repository = self._repository(client)
+        store_a, engine_a = repository.load_cycle()
+        store_b, engine_b = repository.load_cycle()
+
+        self.assertEqual(len(store_a.evidences), 3)
+        self.assertEqual(len(store_a.relations), 4)
+        self.assertEqual(len(store_a.get_relations_for_iec("00000000-0000-0000-0000-000000000001")), 2)
+        self.assertEqual(len(store_a.get_relations_for_iec("00000000-0000-0000-0000-000000000002")), 2)
+
+        relation_a = store_a.get_relation("E1", "00000000-0000-0000-0000-000000000001")
+        relation_b = store_a.get_relation("E2", "00000000-0000-0000-0000-000000000001")
+        relation_c = store_a.get_relation("E2", "00000000-0000-0000-0000-000000000002")
+        relation_d = store_a.get_relation("E3", "00000000-0000-0000-0000-000000000002")
+
+        self.assertEqual(relation_a.relation, "SUPPORTS")
+        self.assertEqual(relation_b.relation, "CONTRADICTS")
+        self.assertEqual(relation_c.relation, "SUPPORTS")
+        self.assertEqual(relation_d.relation, "NEUTRAL")
+        self.assertEqual(relation_a.weight, 0.8)
+        self.assertEqual(relation_b.reason, "Resultado contrário")
+        self.assertEqual(relation_d.metadata["kind"], "context")
+
+        synthesis_a = store_a.compute_epistemic_synthesis("00000000-0000-0000-0000-000000000001")
+        self.assertEqual(synthesis_a["evidence_count"], 2)
+        self.assertEqual(synthesis_a["supporting_count"], 1)
+        self.assertEqual(synthesis_a["contradicting_count"], 1)
+        self.assertEqual(synthesis_a["neutral_count"], 0)
+
+        synthesis_b = store_a.compute_epistemic_synthesis("00000000-0000-0000-0000-000000000002")
+        self.assertEqual(synthesis_b["evidence_count"], 2)
+        self.assertEqual(synthesis_b["supporting_count"], 1)
+        self.assertEqual(synthesis_b["contradicting_count"], 0)
+        self.assertEqual(synthesis_b["neutral_count"], 1)
+
+        self.assertEqual(store_a.to_dict(), store_b.to_dict())
+        self.assertEqual(engine_a.to_dict(), engine_b.to_dict())
+        self.assertEqual(client.state_transitions, [])
+        self.assertEqual(client.events, [])
+
+
 if __name__ == "__main__":
     unittest.main()
