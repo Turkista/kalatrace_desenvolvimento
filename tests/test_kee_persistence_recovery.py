@@ -80,7 +80,10 @@ class FakeSupabaseClient:
                 "event_type": "evidence_merged",
                 "details": {
                     "synthesis_id": "SYNTHESIS-4",
-                    "source_iec_ids": ["00000000-0000-0000-0000-000000000001", "00000000-0000-0000-0000-000000000001"],
+                    "source_iec_ids": [
+                        "00000000-0000-0000-0000-000000000001",
+                        "00000000-0000-0000-0000-000000000001",
+                    ],
                     "statement": "Síntese persistida",
                     "evidence_ids": [],
                     "evidence_count": 0,
@@ -99,13 +102,16 @@ class FakeSupabaseClient:
 
 
 class TestKEEPersistenceRecovery(unittest.TestCase):
-    def test_reconstructs_state_history_events_conflicts_and_syntheses(self):
-        client = FakeSupabaseClient()
-        repository = EpistemicRepository(
+    def _repository(self, client):
+        return EpistemicRepository(
             client,
             access_token="token",
             user_id="00000000-0000-0000-0000-000000000099",
         )
+
+    def test_reconstructs_state_history_events_conflicts_and_syntheses(self):
+        client = FakeSupabaseClient()
+        repository = self._repository(client)
 
         store, engine = repository.load_cycle()
 
@@ -152,7 +158,55 @@ class TestKEEPersistenceRecovery(unittest.TestCase):
             ["knowledge_state_changed", "conflict_registered", "evidence_merged"],
         )
 
-        self.assertIsInstance(store, EvidenceStore)
+    def test_recovery_is_idempotent_and_does_not_emit_persistence_writes(self):
+        client = FakeSupabaseClient()
+        repository = self._repository(client)
+
+        store_a, engine_a = repository.load_cycle()
+        store_b, engine_b = repository.load_cycle()
+
+        # Hydration uses direct reconstruction and must not replay engine
+        # mutations through persistence sinks.
+        self.assertEqual(client.state_transitions, [])
+        self.assertEqual(client.events, [])
+
+        self.assertEqual(store_a.to_dict(), store_b.to_dict())
+        self.assertEqual(engine_a.to_dict(), engine_b.to_dict())
+
+        # A second recovery starts from a fresh runtime and therefore must
+        # not append duplicate state transitions or evolution events.
+        self.assertEqual(len(engine_a.get_state(
+            "00000000-0000-0000-0000-000000000001"
+        )["previous_states"]), 1)
+        self.assertEqual(len(engine_b.get_state(
+            "00000000-0000-0000-0000-000000000001"
+        )["previous_states"]), 1)
+        self.assertEqual(len(engine_a.evolution_history), 3)
+        self.assertEqual(len(engine_b.evolution_history), 3)
+
+        # Numeric identifiers are reconstructed deterministically as well.
+        engine_a.register_conflict(
+            "00000000-0000-0000-0000-000000000001",
+            "00000000-0000-0000-0000-000000000001",
+            "Novo conflito A",
+        )
+        engine_b.register_conflict(
+            "00000000-0000-0000-0000-000000000001",
+            "00000000-0000-0000-0000-000000000001",
+            "Novo conflito B",
+        )
+        self.assertEqual(
+            engine_a.list_conflicts_for_iec(
+                "00000000-0000-0000-0000-000000000001"
+            )[-1]["conflict_id"],
+            "CONFLICT-8",
+        )
+        self.assertEqual(
+            engine_b.list_conflicts_for_iec(
+                "00000000-0000-0000-0000-000000000001"
+            )[-1]["conflict_id"],
+            "CONFLICT-8",
+        )
 
 
 if __name__ == "__main__":
