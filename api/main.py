@@ -202,6 +202,7 @@ from core.persistence.request_context import (
     clear_persistence_queue,
 )
 from integrations.neo4j import Neo4jClient
+from persistence.epistemic_repository import EpistemicRepository
 from api.research_forms import router as research_forms_router
 from local_agent.sandbox import LocalAgentSandboxError, execute_task_spec
 from core.agent_planning.coding_planner import CodingPlanner
@@ -3349,12 +3350,66 @@ def infrastructure_usage(request: Request):
 
 @app.post("/infrastructure/watchdog/run")
 def infrastructure_watchdog_run(request: Request):
-    """Executa uma verificação do Watchdog e persiste snapshot/eventos."""
+    """Executa o Watchdog e, na execução manual, valida recuperação KEE e Neo4j."""
     try:
-        return supabase_client.rpc(
+        result = supabase_client.rpc(
             "run_kalatrace_watchdog",
             request.state.access_token,
         )
+        snapshot_id = result.get("snapshot_id") if isinstance(result, dict) else None
+        runtime_details: Dict[str, Any] = {}
+        persistence_status = "HEALTHY"
+
+        try:
+            repository = EpistemicRepository(
+                supabase_client,
+                access_token=request.state.access_token,
+                user_id=request.state.user["id"],
+            )
+            evidence_store, evolution_engine = repository.load_cycle()
+            runtime_details["persistence_recovery"] = {
+                "status": "HEALTHY",
+                "evidence_count": len(getattr(evidence_store, "evidence", {})),
+                "iec_count": len(getattr(evolution_engine.state_manager, "iec_states", {})),
+                "evolution_events": len(getattr(evolution_engine, "evolution_history", [])),
+            }
+        except Exception as exc:
+            persistence_status = "CRITICAL"
+            runtime_details["persistence_recovery"] = {
+                "status": "CRITICAL",
+                "error": str(exc),
+            }
+
+        graph_status = "HEALTHY"
+        try:
+            graph_connectivity = neo4j_client.verify_connectivity()
+            graph_stats = neo4j_client.get_graph_stats()
+            runtime_details["neo4j"] = {
+                "status": "HEALTHY" if graph_connectivity.get("connected") else "WARNING",
+                "connectivity": graph_connectivity,
+                "stats": graph_stats,
+            }
+            if not graph_connectivity.get("connected"):
+                graph_status = "WARNING"
+        except Exception as exc:
+            graph_status = "WARNING"
+            runtime_details["neo4j"] = {
+                "status": "WARNING",
+                "error": str(exc),
+            }
+
+        if snapshot_id:
+            result = supabase_client.rpc(
+                "record_kalatrace_watchdog_runtime",
+                request.state.access_token,
+                {
+                    "p_snapshot_id": snapshot_id,
+                    "p_persistence_status": persistence_status,
+                    "p_graph_status": graph_status,
+                    "p_details": runtime_details,
+                },
+            )
+        return result
     except SupabaseError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
     except Exception as exc:
