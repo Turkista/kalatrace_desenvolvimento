@@ -411,6 +411,15 @@ evidence_validator = EvidenceValidationEngine(
 )
 
 
+class CmcMissionPersistIn(BaseModel):
+    project_id: Optional[str] = None
+    name: str
+    objective: str
+    priority: str = "NORMAL"
+    status: str = "CREATED"
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+
 # ==========================================================
 # PERSISTENT / PROJECT-SCOPED CMC
 # ==========================================================
@@ -1260,15 +1269,6 @@ class ProjectUpdateIn(BaseModel):
     description: Optional[str] = None
     status: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
-
-
-class CmcMissionPersistIn(BaseModel):
-    project_id: Optional[str] = None
-    name: str
-    objective: str
-    priority: str = "NORMAL"
-    status: str = "CREATED"
-    payload: Dict[str, Any] = Field(default_factory=dict)
 
 
 class AgentTaskIn(BaseModel):
@@ -2739,22 +2739,6 @@ def get_evidence_validation_history():
 def get_evidence_validation_stats():
     return evidence_validator.stats()
 
-
-# ==========================================================
-# PERSISTENT / PROJECT-SCOPED CMC
-# ==========================================================
-
-@app.post("/cmc/persistent/missions")
-def persist_cmc_mission(payload: CmcMissionPersistIn, request: Request):
-    try:
-        result = supabase_client.create_cmc_mission(request.state.access_token, request.state.user["id"], payload.model_dump())
-        return {"status":"created","mission":result[0] if isinstance(result,list) and result else result}
-    except SupabaseError as exc: raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
-
-@app.get("/cmc/persistent/missions")
-def list_persistent_cmc_missions(request: Request, project_id: Optional[str] = None, limit: int = 100):
-    try: return {"missions": supabase_client.list_cmc_missions(request.state.access_token, project_id, limit)}
-    except SupabaseError as exc: raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
 # ==========================================================
 # COMMAND & MISSION CENTER
