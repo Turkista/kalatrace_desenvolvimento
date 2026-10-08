@@ -148,6 +148,10 @@ _evidence_store_context: ContextVar[EvidenceStore | None] = ContextVar(
 class EvidenceStoreProxy:
     """Delegate EvidenceStore operations to the current request's store."""
 
+    # Stable class-level marker: validation can recognize this request-scoped
+    # adapter without resolving delegated attributes outside a request context.
+    __evidence_store_proxy__ = True
+
     def _store(self) -> EvidenceStore:
         store = _evidence_store_context.get()
         if store is None:
