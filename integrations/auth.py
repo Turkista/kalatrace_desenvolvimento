@@ -1,6 +1,7 @@
 """FastAPI authentication middleware backed by Supabase Auth."""
 from __future__ import annotations
 
+import os
 from typing import Any, Dict, Optional
 
 from fastapi import HTTPException, Request
@@ -47,6 +48,22 @@ def require_user(request: Request) -> Dict[str, Any]:
     return user
 
 
+
+def allowed_user_ids() -> set[str]:
+    """IDs permitidos no backend; vazio significa que não há allowlist configurada."""
+    return {
+        value.strip()
+        for value in os.getenv("KALATRACE_ALLOWED_USER_IDS", "").split(",")
+        if value.strip()
+    }
+
+
+def user_is_allowed(user: Dict[str, Any]) -> bool:
+    """Aplica a allowlist opcional de identidades autenticadas."""
+    allowed = allowed_user_ids()
+    return not allowed or str(user.get("id", "")) in allowed
+
+
 def install_auth_middleware(app, client: SupabaseClient) -> None:
     app.state.supabase = client
 
@@ -69,6 +86,12 @@ def install_auth_middleware(app, client: SupabaseClient) -> None:
             return JSONResponse(
                 status_code=401,
                 content={"detail": "Invalid or expired access token", "code": "AUTH_INVALID"},
+            )
+        if not user_is_allowed(user):
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "This account is not authorized for KALATRACE", "code": "USER_NOT_ALLOWED"},
             )
         request.state.access_token = token
         request.state.user = user
