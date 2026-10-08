@@ -3361,6 +3361,40 @@ def infrastructure_watchdog_run(request: Request):
         raise HTTPException(status_code=500, detail="Não foi possível executar o Watchdog da infraestrutura.") from exc
 
 
+@app.get("/infrastructure/watchdog/events")
+def infrastructure_watchdog_events(request: Request, limit: int = 20):
+    """Lista alertas ativos do Watchdog."""
+    try:
+        rows = supabase_client.select(
+            "infrastructure_watchdog_events",
+            request.state.access_token,
+            filters={
+                "resolved_at": "is.null",
+                "order": "created_at.desc",
+                "limit": str(min(max(limit, 1), 100)),
+            },
+        )
+        return {"events": rows if isinstance(rows, list) else []}
+    except SupabaseError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+@app.get("/infrastructure/watchdog/history")
+def infrastructure_watchdog_history(request: Request, limit: int = 20):
+    """Lista snapshots recentes do Watchdog para tendência operacional."""
+    try:
+        rows = supabase_client.select(
+            "infrastructure_usage_snapshots",
+            request.state.access_token,
+            filters={
+                "order": "measured_at.desc",
+                "limit": str(min(max(limit, 1), 100)),
+            },
+        )
+        return {"snapshots": rows if isinstance(rows, list) else []}
+    except SupabaseError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
 # ==========================================================
 # WORKSPACE GOVERNANCE / PROJECT TEMPLATES / DURABLE CMC
 # ==========================================================
