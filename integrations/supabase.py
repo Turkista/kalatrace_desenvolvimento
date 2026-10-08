@@ -154,6 +154,40 @@ class SupabaseClient:
             prefer="return=representation",
         )
 
+
+    def _select_all_pages(
+        self,
+        table: str,
+        access_token: str,
+        *,
+        filters: Optional[Dict[str, str]] = None,
+        page_size: int = 500,
+        max_rows: Optional[int] = None,
+    ) -> Any:
+        """Lê uma coleção ordenada sem truncar silenciosamente em 500 registros."""
+        page_size = min(max(int(page_size), 1), 500)
+        collected = []
+        offset = 0
+        base_filters = dict(filters or {})
+        base_filters.pop("limit", None)
+        base_filters.pop("offset", None)
+        while True:
+            remaining = None if max_rows is None else max_rows - len(collected)
+            if remaining is not None and remaining <= 0:
+                break
+            current_size = page_size if remaining is None else min(page_size, remaining)
+            rows = self.select(
+                table,
+                access_token,
+                filters={**base_filters, "limit": str(current_size), "offset": str(offset)},
+            )
+            rows = rows if isinstance(rows, list) else []
+            collected.extend(rows)
+            if len(rows) < current_size:
+                break
+            offset += len(rows)
+        return collected
+
     def persist_iec(self, access_token: str, user_id: str, iec: Any) -> Any:
         """Persiste uma IEC sem confundir iec_id com o campo legado id."""
         iec_id = getattr(iec, "iec_id", getattr(iec, "id", None))
