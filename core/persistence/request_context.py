@@ -51,12 +51,25 @@ def queue_persistence_transition(
         )
 
 
-def drain_persistence_queue() -> Tuple[List[Any], List[Any]]:
+def get_pending_persistence_queue() -> Tuple[List[Any], List[Any]]:
+    """Return a snapshot of pending records without consuming them."""
     context = _persistence_context.get()
     if context is None:
         return [], []
-    events = list(context["events"])
-    transitions = list(context["transitions"])
+    return list(context["events"]), list(context["transitions"])
+
+
+def clear_persistence_queue() -> None:
+    """Clear pending records only after durable persistence succeeds."""
+    context = _persistence_context.get()
+    if context is None:
+        return
     context["events"].clear()
     context["transitions"].clear()
+
+
+def drain_persistence_queue() -> Tuple[List[Any], List[Any]]:
+    """Backward-compatible consume operation for callers that need it."""
+    events, transitions = get_pending_persistence_queue()
+    clear_persistence_queue()
     return events, transitions
