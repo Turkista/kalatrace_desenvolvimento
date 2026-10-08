@@ -397,8 +397,6 @@ class SupabaseClient:
     ) -> Any:
         filters = {"order": "created_at.asc"}
         if iec_id:
-            filters["iec_id"] = f"eq.{evidence_id}" if evidence_id else {}
-        if iec_id:
             filters["iec_id"] = f"eq.{iec_id}"
         if evidence_id:
             filters["evidence_id"] = f"eq.{evidence_id}"
