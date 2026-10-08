@@ -6,6 +6,10 @@ from typing import Any, Dict, Optional
 from fastapi import HTTPException, Request
 
 from integrations.supabase import SupabaseClient, SupabaseError
+from core.persistence.request_context import (
+    set_persistence_context,
+    reset_persistence_context,
+)
 
 
 PUBLIC_PATHS = {
@@ -68,4 +72,8 @@ def install_auth_middleware(app, client: SupabaseClient) -> None:
             )
         request.state.access_token = token
         request.state.user = user
-        return await call_next(request)
+        context_token = set_persistence_context(token, user["id"])
+        try:
+            return await call_next(request)
+        finally:
+            reset_persistence_context(context_token)

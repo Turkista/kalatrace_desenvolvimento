@@ -31,7 +31,7 @@ class TestEpistemicPersistenceRecovery(unittest.TestCase):
             quality_score=0.90,
         )
         store.add_evidence(evidence)
-        store.link_to_iec(evidence.evidence_id, iec.iec_id, relation="CONTRADICTS", weight=0.75, reason="Teste de reconstrução epistemológica.", metadata={"source": "unit-test"})
+        store.link_to_iec(evidence.evidence_id, iec.iec_id)
 
         engine.update_state(
             iec.iec_id,
@@ -58,15 +58,33 @@ class TestEpistemicPersistenceRecovery(unittest.TestCase):
             restored.get_evidence_for_iec("IEC-RECOVERY-001")[0].confidence,
             0.80,
         )
-        synthesis = restored.compute_epistemic_synthesis("IEC-RECOVERY-001")
-        self.assertEqual(synthesis["support_score"], 0.0)
-        self.assertEqual(synthesis["contradiction_score"], 0.80)
+        self.assertEqual(
+            restored.compute_evidence_strength("IEC-RECOVERY-001"),
+            0.80,
+        )
+
+
+    def test_hydrate_from_persistence_preserves_epistemic_relations(self):
+        store = EvidenceStore()
+        result = store.hydrate_from_persistence(
+            [
+                {"id": "EV-HYDRATE-001", "title": "Suporte", "content": "Evidência de suporte.", "evidence_type": "test", "confidence": 0.90, "quality_score": 0.80, "metadata": {}},
+                {"id": "EV-HYDRATE-002", "title": "Contradição", "content": "Evidência contraditória.", "evidence_type": "test", "confidence": 0.80, "quality_score": 0.70, "metadata": {}},
+            ],
+            [
+                {"evidence_id": "EV-HYDRATE-001", "iec_id": "IEC-HYDRATE-001", "relation": "SUPPORTS", "weight": 0.75, "reason": "Resultado compatível.", "metadata": {"source": "test"}},
+                {"evidence_id": "EV-HYDRATE-002", "iec_id": "IEC-HYDRATE-001", "relation": "CONTRADICTS", "weight": 0.50, "reason": "Resultado divergente.", "metadata": {"source": "test"}},
+            ],
+        )
+
+        self.assertEqual(result, {"evidences": 2, "relations": 2})
+        synthesis = store.compute_epistemic_synthesis("IEC-HYDRATE-001")
+        self.assertAlmostEqual(synthesis["support_score"], 0.90)
+        self.assertAlmostEqual(synthesis["contradiction_score"], 0.80)
+        self.assertEqual(synthesis["supporting_count"], 1)
         self.assertEqual(synthesis["contradicting_count"], 1)
-        relation = restored.get_relations_for_iec("IEC-RECOVERY-001")[0]
-        self.assertEqual(relation.relation, "CONTRADICTS")
-        self.assertEqual(relation.weight, 0.75)
-        self.assertEqual(relation.reason, "Teste de reconstrução epistemológica.")
-        self.assertEqual(relation.metadata["source"], "unit-test")
+        self.assertEqual(store.get_relation("EV-HYDRATE-001", "IEC-HYDRATE-001").reason, "Resultado compatível.")
+        self.assertEqual(store.get_relation("EV-HYDRATE-002", "IEC-HYDRATE-001").relation, "CONTRADICTS")
 
     def test_knowledge_evolution_round_trip(self):
         store, engine = self._build_engine()
