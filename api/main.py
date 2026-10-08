@@ -3450,6 +3450,51 @@ def infrastructure_watchdog_history(request: Request, limit: int = 20):
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
 
+@app.get("/infrastructure/watchdog/runtime")
+def infrastructure_watchdog_runtime(request: Request, limit: int = 30):
+    """Lista os testes reais de recuperação KEE e integridade Neo4j."""
+    try:
+        rows = supabase_client.select(
+            "infrastructure_watchdog_runtime_checks",
+            request.state.access_token,
+            filters={
+                "order": "checked_at.desc",
+                "limit": str(min(max(limit, 1), 100)),
+            },
+        )
+        return {"checks": rows if isinstance(rows, list) else []}
+    except SupabaseError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+@app.get("/infrastructure/watchdog/trends")
+def infrastructure_watchdog_trends(request: Request, limit: int = 100):
+    """Retorna séries históricas para análise de crescimento e saúde."""
+    try:
+        snapshots = supabase_client.select(
+            "infrastructure_usage_snapshots",
+            request.state.access_token,
+            filters={
+                "order": "measured_at.asc",
+                "limit": str(min(max(limit, 1), 100)),
+            },
+        )
+        return {
+            "snapshots": snapshots if isinstance(snapshots, list) else [],
+            "metrics": [
+                "database_bytes",
+                "storage_bytes",
+                "health_score",
+                "overall_status",
+                "epistemic_health",
+                "persistence_health",
+                "graph_health",
+            ],
+        }
+    except SupabaseError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
 # ==========================================================
 # WORKSPACE GOVERNANCE / PROJECT TEMPLATES / DURABLE CMC
 # ==========================================================
