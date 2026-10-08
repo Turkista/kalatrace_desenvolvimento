@@ -502,14 +502,10 @@ class SupabaseClient:
             },
         )
 
-    def list_all_iec_state_history(self, access_token: str, limit: int = 500) -> Any:
-        return self.select(
-            "iec_state_history",
-            access_token,
-            filters={
-                "order": "created_at.asc",
-                "limit": str(min(max(limit, 1), 500)),
-            },
+    def list_all_iec_state_history(self, access_token: str, limit: Optional[int] = 500) -> Any:
+        return self._select_all_pages(
+            "iec_state_history", access_token,
+            filters={"order": "created_at.asc"}, max_rows=limit,
         )
 
     def list_knowledge_evolution_events(
@@ -517,24 +513,17 @@ class SupabaseClient:
         access_token: str,
         *,
         iec_id: Optional[str] = None,
-        limit: int = 500,
+        limit: Optional[int] = 500,
     ) -> Any:
-        filters = {
-            "order": "created_at.asc",
-            "limit": str(min(max(limit, 1), 500)),
-        }
+        filters = {"order": "created_at.asc"}
         if iec_id:
             filters["iec_id"] = f"eq.{iec_id}"
-        return self.select("knowledge_evolution_events", access_token, filters=filters)
+        return self._select_all_pages("knowledge_evolution_events", access_token, filters=filters, max_rows=limit)
 
-    def list_iecs(self, access_token: str, limit: int = 500) -> Any:
-        return self.select(
-            "iecs",
-            access_token,
-            filters={
-                "order": "created_at.asc",
-                "limit": str(min(max(limit, 1), 500)),
-            },
+    def list_iecs(self, access_token: str, limit: Optional[int] = 500) -> Any:
+        return self._select_all_pages(
+            "iecs", access_token,
+            filters={"order": "created_at.asc"}, max_rows=limit,
         )
 
     def list_project_invitations(self, access_token: str, project_id: Optional[str] = None) -> Any:
