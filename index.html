@@ -556,7 +556,7 @@ async function ktRefreshBackendStatus(){
   el.innerHTML='<span class="kt-api-dot '+(ok?'ok':'bad')+'"></span> API '+(ok?'online':'offline')+' · Neo4j '+(neo?'online':'offline');
 }
 function clearForm(btn){btn.closest('.form-card').querySelectorAll('input,select,textarea').forEach(x=>x.value='')}
-function showScreen(id){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');document.querySelector('.content').scrollTop=0;document.getElementById('sidebar').classList.remove('open')}
+function showScreen(id){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');document.querySelector('.content').scrollTop=0;document.getElementById('sidebar').classList.remove('open');if(id==='infraestrutura')ktInfrastructureRefresh()}
 document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>showScreen(n.dataset.screen)));document.getElementById('menuBtn').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
 </script>
 <div id="kt-auth-modal">
