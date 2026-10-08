@@ -226,6 +226,7 @@
     <button class="nav-item" data-screen="metacognicao"><i class="ti ti-eye"></i>Autoavaliação</button>
     <div class="group-label">Infraestrutura</div>
     <button class="nav-item" data-screen="modulos"><i class="ti ti-settings"></i>Módulos e status</button>
+    <button class="nav-item" data-screen="infraestrutura"><i class="ti ti-database"></i>Banco e armazenamento</button>
     <div class="group-label">Projeto piloto</div>
     <button class="nav-item" data-screen="medikalat"><i class="ti ti-clipboard-heart"></i>MEDIKALAT</button>
     <div class="group-label">Projetos operacionais</div>
@@ -281,7 +282,47 @@
 
       <section class="screen" id="screen-modulos"><div class="page-head"><div><h1 class="page-title"><i class="ti ti-settings"></i> Maturidade dos módulos</h1><p class="page-sub">Estado de implementação da infraestrutura do KALATRACE — distinguindo maturidade arquitetural, implementação inicial e componentes ainda em consolidação.</p></div></div><div class="card"><div class="row-item"><span class="badge success">Maduro</span><span style="flex:1"><b>Knowledge Graph</b> · graph/knowledge_graph.py + graph/base/ — núcleo estrutural implementado e testado.</span></div><div class="row-item"><span class="badge success">Maduro</span><span style="flex:1"><b>Validation Engine</b> · validation/validation_engine.py + evidence_validation_engine.py — validação estrutural e de evidências.</span></div><div class="row-item"><span class="badge success">Maduro</span><span style="flex:1"><b>Evidence Store</b> · storage/evidence_store.py — armazenamento estruturado de evidências.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>Reasoning Engine</b> · evidence_reasoning_engine.py (864 linhas) + componentes de inferência e regras.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>Curiosity Engine</b> · 764 linhas + detectores, ranking e geração de lacunas/perguntas.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>Knowledge Evolution Engine</b> · evolução, análise, resolução de conflitos, fusão de evidências e transição de estados.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>Curadoria</b> · maturity/reliability score, gaps, duplicidades e conflitos.</span></div><div class="row-item"><span class="badge success">Implementado</span><span style="flex:1"><b>API REST</b> · api/main.py e endpoints para conhecimento, grafo, evidências, validação, curadoria, aquisição e eventos.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>PARSI</b> · engine implementado e incluído na suíte de testes.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>StarHouse</b> · engine e orquestração implementados e testados.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>HORSE</b> · engine implementado e incluído na suíte de testes.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>Prediction</b> · engine + orchestrator implementados e testados.</span></div><div class="row-item"><span class="badge success">Implementado + testado</span><span style="flex:1"><b>Simulation</b> · engine implementado e testado.</span></div><div class="row-item"><span class="badge warning">Inicial</span><span style="flex:1"><b>Discovery Lab</b> · implementação inicial disponível; ainda requer consolidação e integração ampliada.</span></div><div class="row-item"><span class="badge warning">Básico</span><span style="flex:1"><b>Sistema multiagente</b> · Research, Reasoning, Validation e Curiosity disponíveis; orquestração ainda em consolidação.</span></div><div class="row-item"><span class="badge warning">Básico</span><span style="flex:1"><b>Research Strategy Engine</b> · planner, prioritizer e strategy_generator implementados; maturidade ainda básica.</span></div><div class="row-item"><span class="badge danger">Inicial / Stub</span><span style="flex:1"><b>Metacognição</b> · componentes ainda não consolidados como subsistema operacional.</span></div><div class="row-item"><span class="badge danger">Placeholder</span><span style="flex:1"><b>Hypothesis Persistence</b> · knowledge/hypothesis.py e repository ainda sem implementação persistente completa.</span></div><div class="row-item"><span class="badge danger">Incompleto</span><span style="flex:1"><b>KnowledgeNode estrutural</b> · entidade conceitual definida na arquitetura, mas implementação dedicada ainda em consolidação.</span></div><div class="row-item"><span class="badge info">Fora da maturidade modular</span><span style="flex:1"><b>MEDIKALAT®</b> · projeto piloto/aplicação científica que utiliza o KALATRACE; não é módulo estrutural da plataforma.</span></div><div class="card" style="margin-top:14px;background:var(--surface-1)"><div class="card-title">Critério de leitura</div><p class="fs11 dim" style="margin:0">“Maduro” indica um componente estrutural com implementação substancial; “Implementado” indica funcionalidade existente ainda em evolução; “Básico/Inicial/Placeholder” indica componentes que precisam de consolidação. Implementação não significa validação científica automática.</p></div></div></section>
 
-      <section class="screen" id="screen-robotica">
+      <section class="screen" id="screen-infraestrutura">
+  <div class="page-head">
+    <div><h1 class="page-title"><i class="ti ti-database"></i> Infraestrutura e armazenamento</h1>
+    <p class="page-sub">Visão operacional do banco PostgreSQL e do Supabase Storage do KALATRACE.</p></div>
+    <div class="head-actions"><button onclick="ktInfrastructureRefresh()"><i class="ti ti-refresh"></i> Atualizar</button></div>
+  </div>
+  <div id="infra-alert" class="card" style="display:none"></div>
+  <div class="metric-grid" id="infra-metrics">
+    <div class="metric"><div class="metric-label">Banco PostgreSQL</div><div class="metric-value">—</div><div class="metric-delta">Carregando...</div></div>
+    <div class="metric"><div class="metric-label">Disponível no banco</div><div class="metric-value">—</div><div class="metric-delta">Carregando...</div></div>
+    <div class="metric"><div class="metric-label">Storage</div><div class="metric-value">—</div><div class="metric-delta">Carregando...</div></div>
+    <div class="metric"><div class="metric-label">Objetos no Storage</div><div class="metric-value">—</div><div class="metric-delta">Carregando...</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-head"><h2 class="card-title">Banco de dados</h2><span id="infra-db-badge" class="badge teal">—</span></div>
+      <div id="infra-db-progress" class="progress"><span style="width:0%"></span></div>
+      <div class="row-item"><span style="flex:1">Uso atual</span><b id="infra-db-used">—</b></div>
+      <div class="row-item"><span style="flex:1">Limite do plano</span><b id="infra-db-quota">—</b></div>
+      <div class="row-item"><span style="flex:1">Espaço restante</span><b id="infra-db-free">—</b></div>
+    </div>
+    <div class="card"><div class="card-head"><h2 class="card-title">Supabase Storage</h2><span id="infra-storage-badge" class="badge teal">—</span></div>
+      <div id="infra-storage-progress" class="progress"><span style="width:0%"></span></div>
+      <div class="row-item"><span style="flex:1">Uso atual</span><b id="infra-storage-used">—</b></div>
+      <div class="row-item"><span style="flex:1">Limite do plano</span><b id="infra-storage-quota">—</b></div>
+      <div class="row-item"><span style="flex:1">Espaço restante</span><b id="infra-storage-free">—</b></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-head"><h2 class="card-title">Buckets</h2><span id="infra-storage-updated" class="fs11 muted">—</span></div>
+    <div id="infra-buckets"><span class="muted">Carregando...</span></div>
+  </div>
+  <div class="card"><div class="card-head"><h2 class="card-title">Configuração do projeto</h2></div>
+    <div class="grid-3">
+      <div class="metric"><div class="metric-label">Projeto</div><div class="metric-value" style="font-size:17px">Kalatrace</div></div>
+      <div class="metric"><div class="metric-label">Supabase</div><div class="metric-value" style="font-size:17px">Free</div></div>
+      <div class="metric"><div class="metric-label">PostgreSQL</div><div class="metric-value" style="font-size:17px">17</div></div>
+    </div>
+    <p class="fs11 muted" style="margin:12px 0 0">O limite exibido para o banco é a quota de 500 MB do plano Free; o Storage possui quota de 1 GB. O painel mede o uso real diretamente no projeto.</p>
+  </div>
+</section>
+
+<section class="screen" id="screen-robotica">
         <div class="page-head"><div><h1 class="page-title"><i class="ti ti-robot"></i> Projeto Robótica</h1><p class="page-sub">Ambiente separado para robótica: conexão, sensores, percepção, navegação, comandos e missões.</p></div><button class="primary" onclick="ktRoboticsRefresh()">Atualizar</button></div>
         <div class="metric-grid" id="robotics-metrics"></div>
         <div class="grid-2"><div class="card"><div class="card-head"><h2 class="card-title">Robô</h2></div><div class="form-grid"><div class="field"><label>Robot ID</label><input id="robot-id" value="robot-01"></div><div class="field"><label>Endpoint</label><input id="robot-endpoint" placeholder="http://localhost:9000"></div></div><div class="actions"><button class="primary" onclick="ktRobotConnect()">Conectar</button><button onclick="ktRobotDisconnect()">Desconectar</button></div><pre id="robot-status" class="api-output"></pre></div><div class="card"><div class="card-head"><h2 class="card-title">Nova missão</h2></div><div class="field"><label>Nome</label><input id="mission-name" placeholder="Missão de inspeção"></div><div class="field"><label>Objetivo / parâmetros JSON</label><textarea id="mission-payload">{"objective":"inspection"}</textarea></div><div class="actions"><button class="primary" onclick="ktStartMission()">Iniciar missão</button><button onclick="ktLoadMissions()">Listar missões</button></div><pre id="robot-missions" class="api-output"></pre></div></div>
@@ -628,6 +669,41 @@ async function ktCmcCreateMission(){const m=document.getElementById('cmc-msg');t
 async function ktLoadOpenApi(){try{const spec=await ktApi('/openapi.json');const entries=Object.entries(spec.paths||{});document.getElementById('api-endpoint-count').textContent=entries.length+' rotas';document.getElementById('api-endpoint-list').innerHTML=entries.flatMap(([path,methods])=>Object.keys(methods).map(method=>`<div class="api-endpoint" onclick="ktPickEndpoint('${method.toUpperCase()}','${path.replace(/'/g,"\'")}')"><span class="method">${method.toUpperCase()}</span><code>${path}</code></div>`)).join('')}catch(e){document.getElementById('api-explorer-output').textContent=e.message}}
 function ktPickEndpoint(method,path){document.getElementById('api-method').value=method;document.getElementById('api-path').value=path;document.getElementById('api-body').value='{}'}
 async function ktExecuteApiExplorer(){try{const method=document.getElementById('api-method').value,path=document.getElementById('api-path').value;const o={method};if(['POST','PATCH','PUT','DELETE'].includes(method))o.body=document.getElementById('api-body').value||'{}';document.getElementById('api-explorer-output').textContent=JSON.stringify(await ktApi(path,o),null,2)}catch(e){document.getElementById('api-explorer-output').textContent=e.message}}
-</script><script src="frontend/backend_bindings.js"></script>
+<script>
+function ktFormatBytes(bytes){
+  if(bytes===0)return '0 B';
+  const units=['B','KB','MB','GB','TB']; const i=Math.floor(Math.log(bytes)/Math.log(1024));
+  return (bytes/Math.pow(1024,i)).toFixed(i?2:0)+' '+units[i];
+}
+function ktInfraBadge(el,status){
+  el.className='badge '+(status==='healthy'?'success':status==='warning'?'warning':'danger');
+  el.textContent=status==='healthy'?'Saudável':status==='warning'?'Atenção':'Crítico';
+}
+async function ktInfrastructureRefresh(){
+  const alert=document.getElementById('infra-alert');
+  try{
+    const d=await ktApi('/infrastructure/usage');
+    const db=d.database||{}, st=d.storage||{};
+    document.getElementById('infra-metrics').innerHTML=
+      '<div class="metric"><div class="metric-label">Banco PostgreSQL</div><div class="metric-value">'+ktFormatBytes(db.bytes||0)+'</div><div class="metric-delta">'+Number(db.usage_percent||0).toFixed(2)+'% utilizado</div></div>'+
+      '<div class="metric"><div class="metric-label">Disponível no banco</div><div class="metric-value">'+ktFormatBytes(db.available_bytes||0)+'</div><div class="metric-delta">de '+ktFormatBytes(db.quota_bytes||0)+'</div></div>'+
+      '<div class="metric"><div class="metric-label">Storage</div><div class="metric-value">'+ktFormatBytes(st.bytes||0)+'</div><div class="metric-delta">'+Number(st.usage_percent||0).toFixed(2)+'% utilizado</div></div>'+
+      '<div class="metric"><div class="metric-label">Objetos no Storage</div><div class="metric-value">'+Number(st.objects||0).toLocaleString('pt-BR')+'</div><div class="metric-delta">'+ktFormatBytes(st.available_bytes||0)+' disponíveis</div></div>';
+    document.getElementById('infra-db-used').textContent=ktFormatBytes(db.bytes||0);
+    document.getElementById('infra-db-quota').textContent=ktFormatBytes(db.quota_bytes||0);
+    document.getElementById('infra-db-free').textContent=ktFormatBytes(db.available_bytes||0);
+    document.getElementById('infra-storage-used').textContent=ktFormatBytes(st.bytes||0);
+    document.getElementById('infra-storage-quota').textContent=ktFormatBytes(st.quota_bytes||0);
+    document.getElementById('infra-storage-free').textContent=ktFormatBytes(st.available_bytes||0);
+    document.querySelector('#infra-db-progress span').style.width=Math.min(Number(db.usage_percent||0),100)+'%';
+    document.querySelector('#infra-storage-progress span').style.width=Math.min(Number(st.usage_percent||0),100)+'%';
+    ktInfraBadge(document.getElementById('infra-db-badge'),db.status||'healthy');
+    ktInfraBadge(document.getElementById('infra-storage-badge'),st.status||'healthy');
+    document.getElementById('infra-storage-updated').textContent='Medição: '+new Date(d.measured_at).toLocaleString('pt-BR');
+    document.getElementById('infra-buckets').innerHTML=(st.buckets||[]).map(b=>'<div class="row-item"><i class="ti ti-folder"></i><span style="flex:1"><b>'+b.bucket_id+'</b><span class="fs11 muted" style="display:block">'+Number(b.objects||0).toLocaleString('pt-BR')+' objetos</span></span><b>'+ktFormatBytes(b.bytes||0)+'</b></div>').join('')||'<span class="muted">Nenhum objeto armazenado.</span>';
+    alert.style.display='none';
+  }catch(e){alert.style.display='block';alert.className='card danger';alert.textContent='Não foi possível consultar a infraestrutura: '+e.message}
+}
+</script></script><script src="frontend/backend_bindings.js"></script>
 </body>
 </html>
