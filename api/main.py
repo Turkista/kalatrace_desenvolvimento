@@ -3330,6 +3330,24 @@ def list_module_permissions(
         ),
     }
 # ==========================================================
+# INFRASTRUCTURE / SUPABASE USAGE
+# ==========================================================
+
+@app.get("/infrastructure/usage")
+def infrastructure_usage(request: Request):
+    """Retorna uso do banco e Storage para o painel autenticado."""
+    try:
+        return supabase_client.rpc(
+            "get_kalatrace_infrastructure_usage",
+            request.state.access_token,
+        )
+    except SupabaseError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Não foi possível consultar o uso da infraestrutura.") from exc
+
+
+# ==========================================================
 # WORKSPACE GOVERNANCE / PROJECT TEMPLATES / DURABLE CMC
 # ==========================================================
 
