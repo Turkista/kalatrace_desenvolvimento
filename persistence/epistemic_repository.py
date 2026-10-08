@@ -206,10 +206,70 @@ class EpistemicRepository:
     def load_cycle(
         self, *, iec_ids: Optional[list[str]] = None, limit: Optional[int] = None
     ) -> Tuple[EvidenceStore, KnowledgeEvolutionEngine]:
-        """Reconstruct the durable epistemic runtime after a restart."""
+        """
+        Reconstruct the durable epistemic runtime after a restart.
+
+        The Watchdog uses this path as a non-destructive round-trip probe:
+        durable Supabase records must reconstruct a self-consistent
+        EvidenceStore and KEE state. Inconsistencies fail closed instead of
+        silently producing a partial cognitive state.
+        """
         store = self.load_evidence_store(limit=limit)
         engine = self.load_evolution_engine(store, iec_ids=iec_ids, limit=limit)
+        self.validate_recovery_integrity(store, engine)
         return store, engine
+
+    @staticmethod
+    def validate_recovery_integrity(
+        store: EvidenceStore,
+        engine: KnowledgeEvolutionEngine,
+    ) -> Dict[str, int]:
+        """Validate the reconstructed KEE graph without mutating persistence."""
+        errors: list[str] = []
+
+        evidence_ids = set(store.evidences)
+        relation_ids = set(store.relations)
+
+        for relation_id, relation in store.relations.items():
+            if relation.evidence_id not in evidence_ids:
+                errors.append(
+                    f"relation {relation_id} references missing evidence {relation.evidence_id}"
+                )
+
+        for iec_id, relation_ids_for_iec in store.iec_relation_index.items():
+            for relation_id in relation_ids_for_iec:
+                if relation_id not in relation_ids:
+                    errors.append(
+                        f"IEC {iec_id} references missing relation {relation_id}"
+                    )
+
+        for iec_id, evidence_ids_for_iec in store.iec_index.items():
+            for evidence_id in evidence_ids_for_iec:
+                if evidence_id not in evidence_ids:
+                    errors.append(
+                        f"IEC {iec_id} references missing evidence {evidence_id}"
+                    )
+
+        iec_states = getattr(engine.state_manager, "iec_states", {})
+        for iec_id, state in iec_states.items():
+            if not isinstance(state, dict) or not state.get("iec_id"):
+                errors.append(f"IEC state {iec_id} is malformed")
+
+        if errors:
+            raise RuntimeError(
+                "KEE recovery integrity check failed: "
+                + "; ".join(errors[:10])
+            )
+
+        return {
+            "evidence_count": len(evidence_ids),
+            "relation_count": len(relation_ids),
+            "iec_count": len(iec_states),
+            "evolution_event_count": len(
+                getattr(engine, "evolution_history", [])
+            ),
+            "integrity_errors": 0,
+        }
 
     @staticmethod
     def _iec_id(row: Dict[str, Any]) -> Optional[str]:
