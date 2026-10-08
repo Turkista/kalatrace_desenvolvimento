@@ -95,7 +95,7 @@ class EpistemicRepository:
             self.access_token, self.user_id, iec_id, event_type, details
         )
 
-    def load_evidence_store(self, *, limit: int = 500) -> EvidenceStore:
+    def load_evidence_store(self, *, limit: Optional[int] = None) -> EvidenceStore:
         """Rebuild EvidenceStore from durable evidence and IEC links."""
         rows = self.client.list_evidence(self.access_token, limit=limit)
         store = EvidenceStore()
@@ -117,7 +117,7 @@ class EpistemicRepository:
         evidence_store: EvidenceStore,
         *,
         iec_ids: Optional[list[str]] = None,
-        limit: int = 500,
+        limit: Optional[int] = None,
     ) -> KnowledgeEvolutionEngine:
         """Rebuild current epistemological state and its transition history."""
         engine = KnowledgeEvolutionEngine(
@@ -204,7 +204,7 @@ class EpistemicRepository:
         return engine
 
     def load_cycle(
-        self, *, iec_ids: Optional[list[str]] = None, limit: int = 500
+        self, *, iec_ids: Optional[list[str]] = None, limit: Optional[int] = None
     ) -> Tuple[EvidenceStore, KnowledgeEvolutionEngine]:
         """Reconstruct the durable epistemic runtime after a restart."""
         store = self.load_evidence_store(limit=limit)
