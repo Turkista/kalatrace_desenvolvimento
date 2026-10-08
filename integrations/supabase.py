@@ -353,15 +353,12 @@ class SupabaseClient:
         access_token: str,
         *,
         evidence_id: Optional[str] = None,
-        limit: int = 100,
+        limit: Optional[int] = 100,
     ) -> Any:
-        filters = {
-            "order": "created_at.asc",
-            "limit": str(min(max(limit, 1), 500)),
-        }
+        filters = {"order": "created_at.asc"}
         if evidence_id:
             filters["id"] = f"eq.{evidence_id}"
-        return self.select("evidence", access_token, filters=filters)
+        return self._select_all_pages("evidence", access_token, filters=filters, max_rows=limit)
 
     def link_evidence_to_iec(
         self,
@@ -396,17 +393,16 @@ class SupabaseClient:
         *,
         iec_id: Optional[str] = None,
         evidence_id: Optional[str] = None,
-        limit: int = 500,
+        limit: Optional[int] = 500,
     ) -> Any:
-        filters = {
-            "order": "created_at.asc",
-            "limit": str(min(max(limit, 1), 500)),
-        }
+        filters = {"order": "created_at.asc"}
+        if iec_id:
+            filters["iec_id"] = f"eq.{evidence_id}" if evidence_id else {}
         if iec_id:
             filters["iec_id"] = f"eq.{iec_id}"
         if evidence_id:
             filters["evidence_id"] = f"eq.{evidence_id}"
-        return self.select("evidence_iec_links", access_token, filters=filters)
+        return self._select_all_pages("evidence_iec_links", access_token, filters=filters, max_rows=limit)
 
     def list_evidence_for_iec(
         self,
