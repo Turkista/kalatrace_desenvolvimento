@@ -1,0 +1,54 @@
+name: KALATRACE Watchdog
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validar secrets
+        env:
+          API_URL: ${{ secrets.KALATRACE_API_URL }}
+          EMAIL: ${{ secrets.KALATRACE_WATCHDOG_EMAIL }}
+          PASSWORD: ${{ secrets.KALATRACE_WATCHDOG_PASSWORD }}
+        run: |
+          test -n "$API_URL" || { echo "KALATRACE_API_URL não configurado"; exit 1; }
+          test -n "$EMAIL" || { echo "KALATRACE_WATCHDOG_EMAIL não configurado"; exit 1; }
+          test -n "$PASSWORD" || { echo "KALATRACE_WATCHDOG_PASSWORD não configurado"; exit 1; }
+
+      - name: Autenticar no KALATRACE
+        id: auth
+        env:
+          API_URL: ${{ secrets.KALATRACE_API_URL }}
+          EMAIL: ${{ secrets.KALATRACE_WATCHDOG_EMAIL }}
+          PASSWORD: ${{ secrets.KALATRACE_WATCHDOG_PASSWORD }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body --silent --show-error             --request POST             --header "Content-Type: application/json"             --data "$(jq -nc --arg email "$EMAIL" --arg password "$PASSWORD" '{email:$email,password:$password}')"             "$API_URL/auth/login")
+          token=$(printf '%s' "$response" | jq -r '.access_token // empty')
+          test -n "$token" || { echo "Login não retornou access_token"; exit 1; }
+          echo "access_token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Executar Watchdog
+        env:
+          API_URL: ${{ secrets.KALATRACE_API_URL }}
+          ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          response=$(curl --fail-with-body --silent --show-error             --request POST             --header "Authorization: Bearer $ACCESS_TOKEN"             --header "Content-Type: application/json"             "$API_URL/infrastructure/watchdog/run")
+          printf '%s\n' "$response" | jq .
+          status=$(printf '%s' "$response" | jq -r '.status // empty')
+          score=$(printf '%s' "$response" | jq -r '.health_score // empty')
+          if [ "$status" = "CRITICAL" ]; then
+            echo "Watchdog CRITICAL (score=$score)"
+            exit 1
+          fi
+          if [ "$status" = "WARNING" ]; then
+            echo "Watchdog WARNING (score=$score)"
+          else
+            echo "Watchdog HEALTHY (score=$score)"
+          fi
