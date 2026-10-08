@@ -376,6 +376,7 @@ class Neo4jClient:
                 "orphan_edges": 0,
                 "duplicate_edge_ids": 0,
                 "duplicate_node_ids": 0,
+                "integrity_checked": False,
             }
 
         rows = self.execute(
@@ -395,27 +396,19 @@ class Neo4jClient:
         )
         integrity_rows = self.execute(
             """
-            OPTIONAL MATCH ()-[r:KNOWLEDGE_EDGE]->()
-            WITH count(r) AS edges
+            OPTIONAL MATCH (source)-[r:KNOWLEDGE_EDGE]->(target)
+            WITH
+                sum(CASE
+                    WHEN source:KnowledgeNode AND target:KnowledgeNode THEN 0
+                    ELSE 1
+                END) AS orphan_edges,
+                count(r.id) AS edge_id_count,
+                count(DISTINCT r.id) AS edge_id_distinct_count
             OPTIONAL MATCH (n:KnowledgeNode)
-            WITH edges, count(n.id) AS node_id_count, count(DISTINCT n.id) AS node_distinct_count
-            OPTIONAL MATCH (i:IEC)
-            WITH edges, node_id_count, node_distinct_count,
-                 count(i.id) AS iec_id_count,
-                 count(DISTINCT i.id) AS iec_distinct_count
-            OPTIONAL MATCH (source:KnowledgeNode)-[r:KNOWLEDGE_EDGE]->(target:KnowledgeNode)
-            WITH edges, node_id_count, node_distinct_count, iec_id_count, iec_distinct_count,
-                 count(r) AS valid_edges
-            OPTIONAL MATCH (source)-[orphan:KNOWLEDGE_EDGE]->(target)
-            WHERE source:KnowledgeNode AND target:KnowledgeNode
             RETURN
-                node_id_count,
-                node_distinct_count,
-                iec_id_count,
-                iec_distinct_count,
-                edges,
-                valid_edges,
-                0 AS orphan_edges
+                orphan_edges,
+                greatest(0, edge_id_count - edge_id_distinct_count) AS duplicate_edge_ids,
+                greatest(0, count(n.id) - count(DISTINCT n.id)) AS duplicate_node_ids
             """
         )
 
@@ -428,6 +421,7 @@ class Neo4jClient:
                 "orphan_edges": 0,
                 "duplicate_edge_ids": 0,
                 "duplicate_node_ids": 0,
+                "integrity_checked": True,
             }
 
         row = rows[0]
@@ -439,12 +433,8 @@ class Neo4jClient:
             "iecs": int(row.get("iecs", 0) or 0),
             "edges": int(edge_rows[0].get("edges", 0) or 0) if edge_rows else 0,
             "orphan_edges": int(integrity.get("orphan_edges", 0) or 0),
-            "duplicate_edge_ids": 0,
-            "duplicate_node_ids": max(
-                0,
-                int(integrity.get("node_id_count", 0) or 0)
-                - int(integrity.get("node_distinct_node_count", integrity.get("node_distinct_count", 0)) or 0),
-            ),
+            "duplicate_edge_ids": int(integrity.get("duplicate_edge_ids", 0) or 0),
+            "duplicate_node_ids": int(integrity.get("duplicate_node_ids", 0) or 0),
             "integrity_checked": True,
         }
 
