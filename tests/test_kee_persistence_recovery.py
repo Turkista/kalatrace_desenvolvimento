@@ -171,6 +171,8 @@ class TestKEEPersistenceRecovery(unittest.TestCase):
         self.assertEqual(client.events, [])
 
         self.assertEqual(store_a.to_dict(), store_b.to_dict())
+        self.assertEqual(store_a.history, [])
+        self.assertEqual(store_b.history, [])
         self.assertEqual(engine_a.to_dict(), engine_b.to_dict())
 
         # A second recovery starts from a fresh runtime and therefore must
