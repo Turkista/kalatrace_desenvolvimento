@@ -25,5 +25,52 @@ jobs:
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
           pip install pytest
 
+      - name: Setup Node.js for frontend syntax validation
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate inline JavaScript in index.html
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          class InlineScripts(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.scripts = []
+                  self.current = None
+
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() == "script":
+                      attrs = dict(attrs)
+                      self.current = [] if not attrs.get("src") and attrs.get("type", "").lower() not in {"application/json", "application/ld+json"} else None
+
+              def handle_data(self, data):
+                  if self.current is not None:
+                      self.current.append(data)
+
+              def handle_endtag(self, tag):
+                  if tag.lower() == "script" and self.current is not None:
+                      source = "".join(self.current).strip()
+                      if source:
+                          self.scripts.append(source)
+                      self.current = None
+
+          parser = InlineScripts()
+          parser.feed(Path("index.html").read_text(encoding="utf-8"))
+          if not parser.scripts:
+              raise SystemExit("Nenhum script JavaScript inline encontrado em index.html")
+          out = Path("/tmp/kalatrace-inline-js")
+          out.mkdir(exist_ok=True)
+          for index, source in enumerate(parser.scripts, start=1):
+              (out / f"script-{index}.js").write_text(source, encoding="utf-8")
+          print(f"{len(parser.scripts)} scripts inline preparados para validação.")
+          PY
+          for file in /tmp/kalatrace-inline-js/*.js; do
+            node --check "$file"
+          done
+
       - name: Run ConflictSolver and KEE integration tests
         run: python -m pytest tests/test_conflict_solver.py tests/test_knowledge_evolution_conflict_integration.py tests/test_iec_contract_roundtrip.py tests/test_knowledge_evolution_persistence_sinks.py tests/test_epistemic_persistence_recovery.py tests/test_kee_persistence_recovery.py tests/test_request_persistence_context.py -q
