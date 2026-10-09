@@ -171,6 +171,8 @@ class TestKEEPersistenceRecovery(unittest.TestCase):
         self.assertEqual(client.events, [])
 
         self.assertEqual(store_a.to_dict(), store_b.to_dict())
+        self.assertEqual(store_a.history, [])
+        self.assertEqual(store_b.history, [])
         self.assertEqual(engine_a.to_dict(), engine_b.to_dict())
 
         # A second recovery starts from a fresh runtime and therefore must
@@ -301,6 +303,12 @@ class TestKEEPersistenceRecovery(unittest.TestCase):
         self.assertEqual(relation_a.weight, 0.8)
         self.assertEqual(relation_b.reason, "Resultado contrário")
         self.assertEqual(relation_d.metadata["kind"], "context")
+        # Legacy links without created_at use the stable evidence timestamp.
+        self.assertEqual(relation_a.created_at, "2026-10-07T11:02:00+00:00")
+        self.assertEqual(
+            engine_a.get_state("00000000-0000-0000-0000-000000000001")["created_at"],
+            "2026-10-07T11:00:00+00:00",
+        )
 
         synthesis_a = store_a.compute_epistemic_synthesis("00000000-0000-0000-0000-000000000001")
         self.assertEqual(synthesis_a["evidence_count"], 2)

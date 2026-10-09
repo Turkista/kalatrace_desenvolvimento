@@ -98,18 +98,9 @@ class EpistemicRepository:
     def load_evidence_store(self, *, limit: Optional[int] = None) -> EvidenceStore:
         """Rebuild EvidenceStore from durable evidence and IEC links."""
         rows = self.client.list_evidence(self.access_token, limit=limit)
-        store = EvidenceStore()
-
-        for row in rows or []:
-            store.add_evidence(EvidenceContract.from_dict(row))
-
         links = self.client.list_evidence_iec_links(self.access_token, limit=limit)
-        for link in links or []:
-            evidence_id = link.get("evidence_id")
-            iec_id = link.get("iec_id")
-            if evidence_id and iec_id:
-                store.link_to_iec(evidence_id, iec_id, relation=str(link.get("relation") or "SUPPORTS").upper().strip(), weight=float(link.get("weight", 1.0) or 0.0), reason=str(link.get("reason") or ""), metadata=link.get("metadata") if isinstance(link.get("metadata"), dict) else {})
-
+        store = EvidenceStore()
+        store.hydrate_from_persistence(rows or [], links or [])
         return store
 
     def load_evolution_engine(

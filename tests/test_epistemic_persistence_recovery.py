@@ -72,8 +72,8 @@ class TestEpistemicPersistenceRecovery(unittest.TestCase):
                 {"id": "EV-HYDRATE-002", "title": "Contradição", "content": "Evidência contraditória.", "evidence_type": "test", "confidence": 0.80, "quality_score": 0.70, "metadata": {}},
             ],
             [
-                {"evidence_id": "EV-HYDRATE-001", "iec_id": "IEC-HYDRATE-001", "relation": "SUPPORTS", "weight": 0.75, "reason": "Resultado compatível.", "metadata": {"source": "test"}},
-                {"evidence_id": "EV-HYDRATE-002", "iec_id": "IEC-HYDRATE-001", "relation": "CONTRADICTS", "weight": 0.50, "reason": "Resultado divergente.", "metadata": {"source": "test"}},
+                {"evidence_id": "EV-HYDRATE-001", "iec_id": "IEC-HYDRATE-001", "relation": "SUPPORTS", "weight": 0.75, "reason": "Resultado compatível.", "metadata": {"source": "test"}, "created_at": "2026-10-01T12:00:00+00:00", "validated_at": "2026-10-02T12:00:00+00:00"},
+                {"evidence_id": "EV-HYDRATE-002", "iec_id": "IEC-HYDRATE-001", "relation": "CONTRADICTS", "weight": 0.50, "reason": "Resultado divergente.", "metadata": {"source": "test"}, "created_at": "2026-10-03T12:00:00+00:00"},
             ],
         )
 
@@ -85,6 +85,10 @@ class TestEpistemicPersistenceRecovery(unittest.TestCase):
         self.assertEqual(synthesis["contradicting_count"], 1)
         self.assertEqual(store.get_relation("EV-HYDRATE-001", "IEC-HYDRATE-001").reason, "Resultado compatível.")
         self.assertEqual(store.get_relation("EV-HYDRATE-002", "IEC-HYDRATE-001").relation, "CONTRADICTS")
+        restored_support = store.get_relation("EV-HYDRATE-001", "IEC-HYDRATE-001")
+        self.assertEqual(restored_support.created_at, "2026-10-01T12:00:00+00:00")
+        self.assertEqual(restored_support.validated_at, "2026-10-02T12:00:00+00:00")
+        self.assertEqual(store.evidences["EV-HYDRATE-001"].description, "Evidência de suporte.")
 
     def test_knowledge_evolution_round_trip(self):
         store, engine = self._build_engine()
