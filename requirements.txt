@@ -4,5 +4,6 @@ fastapi
 uvicorn
 pydantic
 requests==2.32.5
+python-dotenv
 
 neo4j>=5.28,<7
