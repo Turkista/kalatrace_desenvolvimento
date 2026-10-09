@@ -131,7 +131,9 @@ class EvidenceStore:
         relation: str = "SUPPORTS",
         weight: float = 1.0,
         reason: str = "",
-        metadata: Dict[str, Any] | None = None
+        metadata: Dict[str, Any] | None = None,
+        created_at: str | None = None,
+        validated_at: str | None = None
     ):
         """
         Cria ou atualiza a relação epistemológica entre uma evidência e uma IEC.
@@ -171,7 +173,9 @@ class EvidenceStore:
             relation=relation,
             weight=weight,
             reason=reason,
-            metadata=metadata or {}
+            created_at=created_at or datetime.now(UTC).isoformat(),
+            validated_at=validated_at,
+            metadata=metadata if isinstance(metadata, dict) else {}
         )
         epistemic_relation.validate()
 
@@ -578,10 +582,9 @@ class EvidenceStore:
         """
         Reconstrói o estado epistemológico a partir do Supabase.
 
-        A persistência é a fonte durável; o EvidenceStore é apenas
-        o estado de execução do processo atual. Relações explícitas
-        preservam SUPPORTS / CONTRADICTS / NEUTRAL, peso, motivo e
-        metadados do vínculo.
+        O schema persistido usa "content", enquanto o contrato de domínio
+        usa "description". A normalização ocorre na fronteira de persistência,
+        sem alterar o contrato público EvidenceContract.
         """
         self.clear()
 
@@ -589,42 +592,73 @@ class EvidenceStore:
         hydrated_links = 0
 
         for row in evidence_rows or []:
-            evidence = EvidenceContract.from_dict(row)
+            payload = dict(row or {})
+            evidence_id = payload.get("id") or payload.get("evidence_id")
+            if not evidence_id:
+                # Um registro sem identidade não pode ser reconstruído com segurança.
+                continue
+
+            payload["id"] = str(evidence_id)
+            title = payload.get("title")
+            payload["title"] = str(title).strip() if title and str(title).strip() else str(evidence_id)
+
+            description = payload.get("description") or payload.get("content") or payload.get("summary") or payload.get("abstract")
+            payload["description"] = (
+                str(description).strip()
+                if description and str(description).strip()
+                else f"Registro de evidência {evidence_id}; descrição não disponível."
+            )
+            evidence_type = payload.get("evidence_type")
+            payload["evidence_type"] = (
+                str(evidence_type).strip()
+                if evidence_type and str(evidence_type).strip()
+                else "unknown"
+            )
+            if not isinstance(payload.get("metadata"), dict):
+                payload["metadata"] = {}
+
+            evidence = EvidenceContract.from_dict(payload)
             evidence.validate()
             self.add_evidence(evidence)
             hydrated_evidence += 1
 
         for row in link_rows or []:
-            evidence_id = row.get("evidence_id")
-            iec_id = row.get("iec_id")
+            payload = dict(row or {})
+            evidence_id = payload.get("evidence_id")
+            iec_id = payload.get("iec_id")
 
             if not evidence_id or not iec_id:
                 continue
 
+            evidence_id = str(evidence_id)
+            iec_id = str(iec_id)
             if evidence_id not in self.evidences:
                 # Não materializa um vínculo órfão no estado cognitivo.
                 continue
 
-            relation = str(row.get("relation") or "SUPPORTS").upper().strip()
-            weight = float(row.get("weight", 1.0) or 0.0)
-            reason = str(row.get("reason") or "")
-            metadata = row.get("metadata")
+            relation = str(payload.get("relation") or "SUPPORTS").upper().strip()
+            raw_weight = payload.get("weight")
+            weight = float(1.0 if raw_weight is None else raw_weight)
+            reason = str(payload.get("reason") or "")
+            metadata = payload.get("metadata")
             if not isinstance(metadata, dict):
                 metadata = {}
 
             self.link_to_iec(
                 evidence_id,
-                str(iec_id),
+                iec_id,
                 relation,
                 weight,
                 reason,
                 metadata,
+                created_at=payload.get("created_at"),
+                validated_at=payload.get("validated_at"),
             )
             hydrated_links += 1
 
         return {
-            "evidence": hydrated_evidence,
-            "links": hydrated_links,
+            "evidences": hydrated_evidence,
+            "relations": hydrated_links,
         }
 
     # ==========================================================
