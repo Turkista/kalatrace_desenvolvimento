@@ -855,7 +855,7 @@ function ktRelationBadge(relation){
   const x=map[relation]||['warning','NÃO CLASSIFICADA'];
   return '<span class="badge '+x[0]+'">'+x[1]+'</span>';
 }
-async function ktLoadEpistemicState(){
+async async function ktLoadEpistemicState(){
   const input=document.getElementById('kt-epistemic-iec-id');
   const status=document.getElementById('kt-epistemic-status');
   const error=document.getElementById('kt-epistemic-error');
@@ -902,7 +902,8 @@ async function ktLoadEpistemicState(){
         ktEscapeHtml(relation.reason||'Sem justificativa registrada.')+'</div></div>'+
         ktRelationBadge(relation.relation)+'<span class="fs11 dim">peso '+ktFmtScore(relation.weight)+'</span></div>';
     }).join('')||'<div class="muted">Nenhuma evidência vinculada a esta IEC.</div>';
-    document.getElementById('kt-epistemic-gaps').innerHTML=(d.gaps||[]).map(function(g){
+    const gaps=Array.isArray(d.gaps)?d.gaps:(d.gaps?.identified_gaps||[]);
+    document.getElementById('kt-epistemic-gaps').innerHTML=gaps.map(function(g){
       return '<div class="row-item"><i class="ti ti-alert-triangle"></i><span>'+ktEscapeHtml(g)+'</span></div>';
     }).join('')||'<span>Nenhuma lacuna registrada pela análise atual.</span>';
     document.getElementById('kt-epistemic-explanation').textContent=d.explanation||'';
