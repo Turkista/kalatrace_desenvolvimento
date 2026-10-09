@@ -49,7 +49,7 @@ class StateTransitionManager:
             "statement": iec.statement,
             "current_state": "UNKNOWN",
             "previous_states": [],
-            "created_at": datetime.now(UTC).isoformat(),
+            "created_at": iec.created_at or datetime.now(UTC).isoformat(),
         }
 
         self.iec_states[iec.iec_id] = state
