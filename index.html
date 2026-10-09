@@ -752,6 +752,7 @@ async function ktCmcCreateMission(){const m=document.getElementById('cmc-msg');t
 async function ktLoadOpenApi(){try{const spec=await ktApi('/openapi.json');const entries=Object.entries(spec.paths||{});document.getElementById('api-endpoint-count').textContent=entries.length+' rotas';document.getElementById('api-endpoint-list').innerHTML=entries.flatMap(([path,methods])=>Object.keys(methods).map(method=>`<div class="api-endpoint" onclick="ktPickEndpoint('${method.toUpperCase()}','${path.replace(/'/g,"\'")}')"><span class="method">${method.toUpperCase()}</span><code>${path}</code></div>`)).join('')}catch(e){document.getElementById('api-explorer-output').textContent=e.message}}
 function ktPickEndpoint(method,path){document.getElementById('api-method').value=method;document.getElementById('api-path').value=path;document.getElementById('api-body').value='{}'}
 async function ktExecuteApiExplorer(){try{const method=document.getElementById('api-method').value,path=document.getElementById('api-path').value;const o={method};if(['POST','PATCH','PUT','DELETE'].includes(method))o.body=document.getElementById('api-body').value||'{}';document.getElementById('api-explorer-output').textContent=JSON.stringify(await ktApi(path,o),null,2)}catch(e){document.getElementById('api-explorer-output').textContent=e.message}}
+</script>
 <script>
 function ktFormatBytes(bytes){
   if(bytes===0)return '0 B';
