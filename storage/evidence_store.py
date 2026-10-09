@@ -656,6 +656,11 @@ class EvidenceStore:
             )
             hydrated_links += 1
 
+        # Hydration reconstructs durable state; it is not a new domain mutation.
+        # Drop add/link bookkeeping events emitted by the invariant-preserving
+        # methods above so repeated recovery produces the same snapshot.
+        self.history.clear()
+
         return {
             "evidences": hydrated_evidence,
             "relations": hydrated_links,
