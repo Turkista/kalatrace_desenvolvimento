@@ -651,7 +651,7 @@ class EvidenceStore:
                 weight,
                 reason,
                 metadata,
-                created_at=payload.get("created_at"),
+                created_at=payload.get("created_at") or self.evidences[evidence_id].created_at,
                 validated_at=payload.get("validated_at"),
             )
             hydrated_links += 1
