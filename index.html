@@ -855,7 +855,7 @@ function ktRelationBadge(relation){
   const x=map[relation]||['warning','NÃO CLASSIFICADA'];
   return '<span class="badge '+x[0]+'">'+x[1]+'</span>';
 }
-async async function ktLoadEpistemicState(){
+async function ktLoadEpistemicState(){
   const input=document.getElementById('kt-epistemic-iec-id');
   const status=document.getElementById('kt-epistemic-status');
   const error=document.getElementById('kt-epistemic-error');
