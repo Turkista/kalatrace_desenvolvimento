@@ -31,14 +31,71 @@ create policy local_agent_tasks_update_workspace on public.local_agent_tasks for
   owner_id = (select auth.uid()) or exists (
     select 1 from public.project_memberships pm where pm.project_id = local_agent_tasks.project_id and pm.user_id = (select auth.uid()) and pm.role in ('owner','administrator','developer')
   )
-) with check (owner_id = owner_id);
+) with check (
+  owner_id = (SELECT auth.uid()) OR EXISTS (
+    SELECT 1 FROM public.project_memberships pm
+    WHERE pm.project_id = local_agent_tasks.project_id
+      AND pm.user_id = (SELECT auth.uid())
+      AND pm.role IN ('owner', 'administrator', 'developer')
+  )
+);
+
+-- Enforce approval and execution invariants at the database boundary.
+CREATE OR REPLACE FUNCTION public.guard_local_agent_task_mutations()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $function$
+BEGIN
+  IF NEW.owner_id IS DISTINCT FROM OLD.owner_id THEN
+    RAISE EXCEPTION 'Task ownership cannot be changed';
+  END IF;
+
+  IF OLD.approved_at IS NOT NULL
+     AND NEW.execution_spec IS DISTINCT FROM OLD.execution_spec THEN
+    RAISE EXCEPTION 'Execution specification is immutable after approval';
+  END IF;
+
+  IF NEW.status = 'approved' AND OLD.status IS DISTINCT FROM 'approved' THEN
+    IF NEW.approved_by IS DISTINCT FROM (SELECT auth.uid()) OR NEW.approved_at IS NULL THEN
+      RAISE EXCEPTION 'Approval metadata must identify the approving user';
+    END IF;
+
+    IF NOT EXISTS (
+      SELECT 1
+      FROM public.projects p
+      LEFT JOIN public.project_memberships pm
+        ON pm.project_id = p.id AND pm.user_id = (SELECT auth.uid())
+      WHERE p.id = NEW.project_id
+        AND (
+          p.owner_id = (SELECT auth.uid())
+          OR pm.role IN ('owner', 'administrator', 'developer', 'operator')
+        )
+    ) THEN
+      RAISE EXCEPTION 'Only authorized project members may approve executable tasks';
+    END IF;
+  END IF;
+
+  IF NEW.status = 'running' AND OLD.status NOT IN ('approved', 'running') THEN
+    RAISE EXCEPTION 'A task must be approved before it can run';
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.guard_local_agent_task_mutations() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS guard_local_agent_task_mutations ON public.local_agent_tasks;
+CREATE TRIGGER guard_local_agent_task_mutations
+  BEFORE UPDATE ON public.local_agent_tasks
+  FOR EACH ROW EXECUTE FUNCTION public.guard_local_agent_task_mutations();
 
 -- Atomic task claim prevents two Local Agent instances from taking the same task.
 create or replace function public.claim_next_local_agent_task(p_instance_name text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_instance uuid;
@@ -61,14 +118,15 @@ begin
       and (owner_id = auth.uid() or exists (
         select 1 from public.project_memberships pm
         where pm.project_id = local_agent_tasks.project_id
-          and pm.user_id = auth.uid()
+          and pm.user_id = (SELECT auth.uid())
+          and pm.role in ('owner','administrator','developer','operator')
       ))
     order by priority desc, created_at asc
     for update skip locked
     limit 1
   )
   update public.local_agent_tasks t
-  set status = 'running', claimed_by = v_instance, started_at = coalesce(started_at, now()), updated_at = now()
+  set status = 'running', claimed_by = v_instance, started_at = coalesce(started_at, pg_catalog.now()), updated_at = pg_catalog.now()
   from candidate
   where t.id = candidate.id
   returning to_jsonb(t) into v_task;
@@ -76,5 +134,5 @@ begin
   return coalesce(v_task, 'null'::jsonb);
 end;
 $$;
-revoke all on function public.claim_next_local_agent_task(text) from public;
+revoke all on function public.claim_next_local_agent_task(text) from public, anon;
 grant execute on function public.claim_next_local_agent_task(text) to authenticated;
