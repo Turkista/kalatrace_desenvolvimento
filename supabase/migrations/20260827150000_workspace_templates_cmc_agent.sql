@@ -28,7 +28,7 @@ as $$
 begin
   insert into public.workspace_profiles(id,email,full_name,avatar_url)
   values (new.id, coalesce(new.email,''), new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url')
-  on conflict (id) do update set email=excluded.email, full_name=coalesce(excluded.full_name,public.public.workspace_profiles.full_name), avatar_url=coalesce(excluded.avatar_url,public.workspace_profiles.avatar_url), updated_at=pg_catalog.now();
+  on conflict (id) do update set email=excluded.email, full_name=coalesce(excluded.full_name,public.workspace_profiles.full_name), avatar_url=coalesce(excluded.avatar_url,public.workspace_profiles.avatar_url), updated_at=pg_catalog.now();
   return new;
 end;
 $$;
