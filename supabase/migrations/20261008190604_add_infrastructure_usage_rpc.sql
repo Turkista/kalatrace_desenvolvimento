@@ -144,7 +144,7 @@ begin
     'database_name',pg_catalog.current_database(),'measured_at',now()
   );
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.sync_kalatrace_watchdog_events(p_snapshot_id bigint)
@@ -190,7 +190,7 @@ begin
     end if;
   end loop;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.run_kalatrace_watchdog()
@@ -339,7 +339,7 @@ begin
 
   return jsonb_build_object('snapshot_id',snapshot_id,'status',overall,'health_score',score,'evaluation',evaluation,'measured_at',now());
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.trg_sync_kalatrace_watchdog_events()
@@ -352,7 +352,7 @@ begin
   perform private.sync_kalatrace_watchdog_events(new.id);
   return new;
 end;
-$function$
+$function$;
 
 
 DROP TRIGGER IF EXISTS trg_sync_kalatrace_watchdog_events
