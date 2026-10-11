@@ -60,7 +60,7 @@ Correções incluídas antes da aplicação:
 Migração adicional:
 - `20261011161017_guard_agent_task_insert_approval.sql` fecha explicitamente o caminho de inserir tarefas já aprovadas.
 
-Verificações no catálogo confirmaram as tabelas, RLS, funções, políticas, grants e o trigger `BEFORE INSERT OR UPDATE` de tarefas. As funções privadas de coleta, execução e sincronização do Watchdog agora não são executáveis por `anon` nem por `authenticated`; apenas os helpers necessários às políticas têm execução concedida a `authenticated`. Um teste SQL anterior à correção adicional de INSERT confirmou o bloqueio de aprovação por usuário não autorizado, a transição direta de `queued` para `running` e a alteração da especificação após aprovação. A correção posterior de INSERT foi verificada no catálogo; o teste end-to-end completo continua pendente.
+Verificações no catálogo confirmaram as tabelas, RLS, funções, políticas, grants e o trigger `BEFORE INSERT OR UPDATE` de tarefas. Teste de autorização com claims simulados confirmou que o helper retorna `false` quando uma sessão tenta consultar autorização em nome do proprietário e `true` para o proprietário da sessão. As funções privadas de coleta, execução e sincronização do Watchdog agora não são executáveis por `anon` nem por `authenticated`; apenas os helpers necessários às políticas têm execução concedida a `authenticated`. Um teste SQL anterior à correção adicional de INSERT confirmou o bloqueio de aprovação por usuário não autorizado, a transição direta de `queued` para `running` e a alteração da especificação após aprovação. A correção posterior de INSERT foi verificada no catálogo; o teste end-to-end completo continua pendente.
 
 ## Migrações reconstruídas
 
