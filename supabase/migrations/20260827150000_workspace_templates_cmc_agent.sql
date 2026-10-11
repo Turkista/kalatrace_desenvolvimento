@@ -65,7 +65,7 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $fu
    )
  );
 $function$;
-REVOKE ALL ON FUNCTION public.can_manage_project(uuid, uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.can_manage_project(uuid, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.can_manage_project(uuid, uuid) TO authenticated;
 
 DROP POLICY IF EXISTS project_memberships_select_own ON public.project_memberships;
