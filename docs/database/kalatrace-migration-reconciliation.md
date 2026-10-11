@@ -15,7 +15,7 @@ A contagem de arquivos não prova, por si só, que existam migrações pendentes
 
 - GitHub em `main` no início da auditoria: 17 arquivos em `supabase/migrations/`.
 - Supabase antes das correções desta rodada: 13 versões registradas no histórico remoto.
-- Branch desta PR: 22 arquivos ativos de migração, dos quais 15 correspondem a versões atualmente registradas no Supabase e 7 são módulos workspace/CMC ainda não aplicados.
+- Branch desta PR após as correções: 23 arquivos ativos de migração e 23 versões no histórico Supabase; a comparação exata dos prefixos de versão não encontrou migrações ausentes nem arquivos sem registro.
 - As três migrações recentes de segurança/performance abaixo estavam presentes nos dois lados:
   - `20261011144046_revoke_unsafe_public_table_privileges`
   - `20261011144806_harden_trigger_function_search_path_and_index_task_owner`
@@ -38,7 +38,7 @@ A contagem de arquivos não prova, por si só, que existam migrações pendentes
 | Evidência/relacionamentos | `20261005_epistemic_evidence_relations.sql` e `20261007135705_epistemic_evidence_relations.sql` | Versão `20261007135705` registrada | Possível arquivo legado duplicado | Confirmar origem; remover/arquivar só em PR separada |
 | Uso de infraestrutura | `20261008170000_add_infrastructure_usage_rpc.sql` | `20261008190604 add_infrastructure_usage_rpc` | Fonte divergente | Recuperar SQL aplicado; manter versão corrigida com privilégios e search_path explícitos |
 | Saúde/runtime da infraestrutura | Arquivo reconstruído como `20261008191018_extend_infrastructure_health_rpc.sql` a partir das colunas, constraints, índices e definição remota da RPC | `20261008191018 extend_infrastructure_health_rpc` | Baseline reconstruído | Validar em reset local limpo; o original exato não foi recuperado |
-| Workspace/CMC/agent governance | Arquivos `20260827140000` a `20260827210000` presentes | Tabelas esperadas não encontradas com os nomes acima | Não aplicado ou nomes/escopo divergentes | Revisar dependências, código consumidor e RLS antes de decidir |
+| Workspace/CMC/agent governance | Sete migrações versionadas e endurecidas nesta branch, movidas para versões de execução atuais; fontes originais preservadas em `_archive/supabase_migrations_original/` | As tabelas de workspace, CMC, instâncias e sincronização agora existem | Aplicadas e reconciliadas | Testes end-to-end de autorização ainda pendentes |
 
 ## Achado adicional: exposição e execução das RPCs de infraestrutura
 
@@ -62,7 +62,11 @@ A migração `20261011153829_harden_infrastructure_watchdog_admin_access.sql` fo
 
 **Watchdog:** migração aplicada no projeto remoto e registrada como `20261011153829 harden_infrastructure_watchdog_admin_access`. A consulta ao catálogo confirmou as quatro RPCs com `SECURITY DEFINER`, `search_path` vazio, execução negada a `anon` e concedida a `authenticated`, com verificação administrativa dentro das funções. A allowlist contém o administrador inicial; os privilégios diretos de UPDATE/DELETE para `authenticated` continuam negados. Um teste SQL com claims simulados confirmou que o administrador inicial consegue consultar métricas e que um UID não autorizado é bloqueado nas três RPCs. **Perfis:** migração aplicada e registrada como `20261011154847 harden_profile_role_update_privileges`; verificação de privilégios confirmou que `authenticated` não possui UPDATE de tabela nem UPDATE da coluna `role`, mas mantém UPDATE em `display_name`.
 
-Esses testes SQL não substituem um teste end-to-end por PostgREST com duas sessões reais.
+**Workspace/CMC e agentes:** sete migrações foram aplicadas em sequência e registradas nas versões `20261011160607` a `20261011160830`. As políticas e funções foram endurecidas antes da aplicação: inserção de membros pelo fluxo de convite/owner, alteração de papéis via RPC autorizada, colunas de ownership de projetos sem UPDATE direto, instâncias de agente visíveis apenas ao proprietário, aprovação de tarefas protegida por papel e especificação de execução imutável após aprovação. A migração `20261011161017_guard_agent_task_insert_approval` fecha também o caminho de inserir tarefas já aprovadas.
+
+**Reconciliação:** a consulta final encontrou 23 arquivos de migração ativos e 23 versões remotas, sem versões faltando de um lado ou do outro. As migrações iniciais e de infraestrutura sem SQL original no histórico Git foram reconstruídas a partir do catálogo remoto e marcadas explicitamente como reconstruções; as fontes originais das migrações workspace foram preservadas no diretório `_archive/`.
+
+Essas verificações de catálogo e testes SQL não substituem um teste end-to-end por PostgREST com duas sessões reais.
 
 ## Sequência de reconciliação
 
@@ -77,7 +81,7 @@ Esses testes SQL não substituem um teste end-to-end por PostgREST com duas sess
 
 - Validação dos arquivos reconstruídos em um reset local limpo. Os arquivos originais não foram encontrados no histórico Git; os novos arquivos são reconstruções explícitas baseadas no catálogo remoto, não cópias byte a byte.
 - Confirmar por reset local que as migrações reconstruídas reproduzem o schema sem dependências ausentes.
-- Decisão explícita sobre os módulos workspace/CMC.
+- Teste end-to-end via PostgREST com duas sessões autenticadas reais, incluindo papéis diferentes e isolamento entre usuários.
 - Teste RLS end-to-end com duas sessões autenticadas separadas.
 - Habilitar proteção de senha comprometida nas configurações de Auth do Supabase.
 - Revisar os 25 índices marcados como não utilizados; não removê-los apenas com base no advisor.
