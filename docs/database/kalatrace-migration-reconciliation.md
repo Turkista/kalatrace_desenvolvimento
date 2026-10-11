@@ -7,8 +7,8 @@
 
 ## Resultado atual
 
-- A pasta ativa `supabase/migrations/` tem **23 arquivos**.
-- O histórico remoto `supabase_migrations.schema_migrations` tem **23 versões**.
+- A pasta ativa `supabase/migrations/` tem **26 arquivos**.
+- O histórico remoto `supabase_migrations.schema_migrations` tem **26 versões**.
 - A comparação exata dos prefixos de versão encontrou **zero versões sem arquivo local e zero arquivos ativos sem versão remota**.
 - Foram aplicadas sete migrações de workspace/CMC/agentes que já estavam versionadas no repositório, mas não estavam no banco. Como as versões antigas não existiam no histórico remoto, foram registradas sob novas versões de execução, de `20261011160607` a `20261011160830`.
 - Os SQLs originais dessas sete migrações foram preservados em `_archive/supabase_migrations_original/`. Os arquivos ativos contêm as correções de segurança aplicadas.
@@ -60,7 +60,7 @@ Correções incluídas antes da aplicação:
 Migração adicional:
 - `20261011161017_guard_agent_task_insert_approval.sql` fecha explicitamente o caminho de inserir tarefas já aprovadas.
 
-Verificações no catálogo confirmaram as tabelas, RLS, funções, políticas, grants e o trigger `BEFORE INSERT OR UPDATE` de tarefas. Um teste SQL anterior à correção adicional de INSERT confirmou o bloqueio de aprovação por usuário não autorizado, a transição direta de `queued` para `running` e a alteração da especificação após aprovação. A correção posterior de INSERT foi verificada no catálogo; o teste end-to-end completo continua pendente.
+Verificações no catálogo confirmaram as tabelas, RLS, funções, políticas, grants e o trigger `BEFORE INSERT OR UPDATE` de tarefas. As funções privadas de coleta, execução e sincronização do Watchdog agora não são executáveis por `anon` nem por `authenticated`; apenas os helpers necessários às políticas têm execução concedida a `authenticated`. Um teste SQL anterior à correção adicional de INSERT confirmou o bloqueio de aprovação por usuário não autorizado, a transição direta de `queued` para `running` e a alteração da especificação após aprovação. A correção posterior de INSERT foi verificada no catálogo; o teste end-to-end completo continua pendente.
 
 ## Migrações reconstruídas
 
