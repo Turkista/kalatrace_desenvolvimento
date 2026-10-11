@@ -3,10 +3,10 @@
 drop policy if exists project_memberships_update_own on public.project_memberships;
 drop policy if exists project_memberships_update_managed on public.project_memberships;
 create policy project_memberships_update_managed on public.project_memberships for update to authenticated
-using (can_manage_project(project_id,(select auth.uid())))
+using (public.can_manage_project(project_id,(select auth.uid())))
 with check (
-  can_manage_project(project_id,(select auth.uid()))
-  and role in ('owner','administrator','developer','researcher','operator','viewer')
+  public.can_manage_project(project_id,(select auth.uid()))
+  and role in ('administrator','developer','researcher','operator','viewer')
 );
 
 create or replace function public.update_project_member_role(
