@@ -1,0 +1,44 @@
+name: Clean Supabase migration rebuild
+
+on:
+  push:
+    branches:
+      - chore/reconcile-supabase-migration-history
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - ".github/workflows/migration-rebuild.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  clean-rebuild:
+    name: Rebuild database from migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Initialize local Supabase config
+        run: supabase init --force
+
+      - name: Start isolated local Supabase stack
+        run: supabase start
+
+      - name: Apply every active migration to a clean database
+        run: supabase db reset
+
+      - name: Verify local Supabase services
+        run: supabase status
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop --no-backup
