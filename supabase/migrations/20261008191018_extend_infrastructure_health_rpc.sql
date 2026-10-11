@@ -132,7 +132,7 @@ BEGIN
     WHERE id = p_snapshot_id
   );
 END;
-$function$
+$function$;
 
 
 REVOKE ALL ON FUNCTION public.record_kalatrace_watchdog_runtime(bigint, text, text, jsonb) FROM PUBLIC, anon;
