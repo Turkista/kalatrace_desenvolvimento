@@ -23,18 +23,19 @@ create policy workspace_profiles_select on public.workspace_profiles for select 
 );
 
 create or replace function public.handle_new_workspace_profile()
-returns trigger language plpgsql security definer set search_path = public
+returns trigger language plpgsql security definer set search_path = ''
 as $$
 begin
   insert into public.workspace_profiles(id,email,full_name,avatar_url)
   values (new.id, coalesce(new.email,''), new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url')
-  on conflict (id) do update set email=excluded.email, full_name=coalesce(excluded.full_name,workspace_profiles.full_name), avatar_url=coalesce(excluded.avatar_url,workspace_profiles.avatar_url), updated_at=now();
+  on conflict (id) do update set email=excluded.email, full_name=coalesce(excluded.full_name,public.workspace_profiles.full_name), avatar_url=coalesce(excluded.avatar_url,workspace_profiles.avatar_url), updated_at=pg_catalog.now();
   return new;
 end;
 $$;
 drop trigger if exists on_auth_user_workspace_profile on auth.users;
 create trigger on_auth_user_workspace_profile after insert or update of email, raw_user_meta_data on auth.users
 for each row execute function public.handle_new_workspace_profile();
+revoke all on function public.handle_new_workspace_profile() from public, anon, authenticated;
 insert into public.workspace_profiles(id,email,full_name,avatar_url)
 select id,coalesce(email,''),raw_user_meta_data->>'full_name',raw_user_meta_data->>'avatar_url' from auth.users
 on conflict (id) do update set email=excluded.email, full_name=coalesce(excluded.full_name,workspace_profiles.full_name), avatar_url=coalesce(excluded.avatar_url,workspace_profiles.avatar_url), updated_at=now();
@@ -54,10 +55,23 @@ create unique index if not exists project_invitations_pending_idx on public.proj
 alter table public.project_invitations enable row level security;
 grant select,insert,update,delete on public.project_invitations to authenticated;
 create or replace function public.can_manage_project(p_project_id uuid, p_user_id uuid)
-returns boolean language sql stable security definer set search_path=public as $$
- select exists(select 1 from public.projects p where p.id=p_project_id and p.owner_id=p_user_id)
-    or exists(select 1 from public.project_memberships pm where pm.project_id=p_project_id and pm.user_id=p_user_id and pm.role in ('owner','administrator'));
-$$;
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $function$
+ SELECT p_user_id = (SELECT auth.uid()) AND (
+   EXISTS (SELECT 1 FROM public.projects p WHERE p.id = p_project_id AND p.owner_id = p_user_id)
+   OR EXISTS (
+     SELECT 1 FROM public.project_memberships pm
+     WHERE pm.project_id = p_project_id AND pm.user_id = p_user_id
+       AND pm.role IN ('owner', 'administrator')
+   )
+ );
+$function$;
+REVOKE ALL ON FUNCTION public.can_manage_project(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_manage_project(uuid, uuid) TO authenticated;
+
+DROP POLICY IF EXISTS project_memberships_select_own ON public.project_memberships;
+CREATE POLICY project_memberships_select_own ON public.project_memberships
+  FOR SELECT TO authenticated
+  USING (user_id = (SELECT auth.uid()) OR public.can_manage_project(project_id, (SELECT auth.uid())));
 drop policy if exists project_invitations_select on public.project_invitations;
 drop policy if exists project_invitations_insert on public.project_invitations;
 drop policy if exists project_invitations_update on public.project_invitations;
@@ -67,20 +81,35 @@ create policy project_invitations_select on public.project_invitations for selec
 create policy project_invitations_insert on public.project_invitations for insert to authenticated with check (can_manage_project(project_id,(select auth.uid())) and invited_by=(select auth.uid()));
 create policy project_invitations_update on public.project_invitations for update to authenticated using (can_manage_project(project_id,(select auth.uid()))) with check (can_manage_project(project_id,(select auth.uid())));
 create or replace function public.accept_pending_project_invitations()
-returns trigger language plpgsql security definer set search_path=public
-as $$
-begin
-  insert into public.project_memberships(project_id,user_id,role)
-  select project_id,new.id,role from public.project_invitations
-  where lower(email)=lower(new.email) and status='pending' and expires_at>now()
-  on conflict(project_id,user_id) do update set role=excluded.role, updated_at=now();
-  update public.project_invitations set status='accepted',updated_at=now()
-  where lower(email)=lower(new.email) and status='pending' and expires_at>now();
-  return new;
-end;
-$$;
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $function$
+BEGIN
+  IF NEW.email_confirmed_at IS NULL OR NEW.email IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  INSERT INTO public.project_memberships(project_id, user_id, role)
+  SELECT i.project_id, NEW.id, i.role
+  FROM public.project_invitations AS i
+  WHERE lower(i.email) = lower(NEW.email)
+    AND i.status = 'pending'
+    AND i.expires_at > pg_catalog.now()
+  ON CONFLICT (project_id, user_id) DO UPDATE
+    SET role = EXCLUDED.role, updated_at = pg_catalog.now()
+    WHERE public.project_memberships.role <> 'owner';
+
+  UPDATE public.project_invitations AS i
+  SET status = 'accepted', updated_at = pg_catalog.now()
+  WHERE lower(i.email) = lower(NEW.email)
+    AND i.status = 'pending'
+    AND i.expires_at > pg_catalog.now();
+
+  RETURN NEW;
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.accept_pending_project_invitations() FROM PUBLIC, anon, authenticated;
 drop trigger if exists on_auth_user_accept_project_invitations on auth.users;
-create trigger on_auth_user_accept_project_invitations after insert on auth.users for each row execute function public.accept_pending_project_invitations();
+create trigger on_auth_user_accept_project_invitations after insert or update of email, email_confirmed_at on auth.users for each row execute function public.accept_pending_project_invitations();
 
 create table if not exists public.project_templates (
   id uuid primary key default gen_random_uuid(),
@@ -132,20 +161,20 @@ create index if not exists cmc_decisions_mission_idx on public.cmc_decisions(mis
 create index if not exists cmc_events_mission_idx on public.cmc_events(mission_id,created_at desc);
 
 create table if not exists public.local_agent_instances (
- id uuid primary key default gen_random_uuid(), instance_name text not null unique, status text not null default 'offline' check(status in ('online','offline','busy','degraded')),
+ id uuid primary key default gen_random_uuid(), owner_id uuid not null references auth.users(id) on delete cascade, instance_name text not null unique, status text not null default 'offline' check(status in ('online','offline','busy','degraded')),
  capabilities jsonb not null default '[]'::jsonb, last_heartbeat_at timestamptz, metadata jsonb not null default '{}'::jsonb,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 
 alter table public.cmc_commands enable row level security; alter table public.cmc_decisions enable row level security; alter table public.cmc_resource_allocations enable row level security; alter table public.cmc_events enable row level security; alter table public.local_agent_instances enable row level security;
 grant select,insert,update,delete on public.cmc_commands,public.cmc_decisions,public.cmc_resource_allocations,public.cmc_events to authenticated;
-grant select on public.local_agent_instances to authenticated;
+grant select,insert,update on public.local_agent_instances to authenticated;
 
 create policy cmc_commands_owner on public.cmc_commands for all to authenticated using(owner_id=(select auth.uid())) with check(owner_id=(select auth.uid()));
 create policy cmc_decisions_owner on public.cmc_decisions for all to authenticated using(owner_id=(select auth.uid())) with check(owner_id=(select auth.uid()));
 create policy cmc_resources_owner on public.cmc_resource_allocations for all to authenticated using(owner_id=(select auth.uid())) with check(owner_id=(select auth.uid()));
 create policy cmc_events_owner on public.cmc_events for all to authenticated using(owner_id=(select auth.uid())) with check(owner_id=(select auth.uid()));
-create policy local_agent_instances_read on public.local_agent_instances for select to authenticated using(true);
+create policy local_agent_instances_read on public.local_agent_instances for select to authenticated using(owner_id=(select auth.uid()));
 
 -- Expand project RLS to project members and administrators.
 drop policy if exists projects_select_own on public.projects;
