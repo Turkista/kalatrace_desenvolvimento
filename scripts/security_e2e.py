@@ -176,11 +176,31 @@ def main() -> int:
         passed.append("profile role escalation denied while display_name remains editable")
 
         status, payload = request(
+            "POST", "/rest/v1/rpc/append_cmc_mission_timeline",
+            key=ANON_KEY, token=token_b,
+            body={"p_mission_id": mission_id, "p_event": {"type": "unauthorized-test"}},
+        )
+        require(status >= 400,
+                "User B could append to user A's CMC mission timeline.")
+        status, payload = request(
+            "POST", "/rest/v1/rpc/update_project_member_role",
+            key=ANON_KEY, token=token_b,
+            body={"p_project_id": project_id, "p_user_id": id_a, "p_role": "viewer"},
+        )
+        require(status >= 400,
+                "User B could change membership roles in user A's project.")
+        status, payload = request(
             "POST", "/rest/v1/rpc/get_kalatrace_infrastructure_usage",
             key=ANON_KEY, token=token_b, body={},
         )
         require(status >= 400,
                 "Non-admin user could call infrastructure usage SECURITY DEFINER RPC.")
+        status, payload = request(
+            "POST", "/rest/v1/rpc/run_kalatrace_watchdog",
+            key=ANON_KEY, token=token_b, body={},
+        )
+        require(status >= 400,
+                "Non-admin user could run the watchdog SECURITY DEFINER RPC.")
         status, payload = request(
             "POST", "/rest/v1/rpc/record_kalatrace_watchdog_runtime",
             key=ANON_KEY, token=token_b,
@@ -189,7 +209,7 @@ def main() -> int:
         )
         require(status >= 400,
                 "Non-admin user could call watchdog runtime SECURITY DEFINER RPC.")
-        passed.append("watchdog SECURITY DEFINER RPCs reject non-admin sessions")
+        passed.append("CMC/workspace/watchdog SECURITY DEFINER RPCs reject unauthorized sessions")
 
         print(f"PASS: {len(passed)} authorization checks")
         for item in passed:
