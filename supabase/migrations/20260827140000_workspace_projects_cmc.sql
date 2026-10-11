@@ -24,7 +24,7 @@ drop policy if exists project_memberships_update_own on public.project_membershi
 drop policy if exists project_memberships_delete_own on public.project_memberships;
 create policy project_memberships_select_own on public.project_memberships for select to authenticated using (user_id=(select auth.uid()) or exists (select 1 from public.projects p where p.id=project_id and p.owner_id=(select auth.uid())));
 create policy project_memberships_insert_own on public.project_memberships for insert to authenticated with check (exists (select 1 from public.projects p where p.id=project_id and p.owner_id=(select auth.uid())));
-create policy project_memberships_update_own on public.project_memberships for update to authenticated using (user_id=(select auth.uid()) or exists (select 1 from public.projects p where p.id=project_id and p.owner_id=(select auth.uid()))) with check (user_id=(select auth.uid()) or exists (select 1 from public.projects p where p.id=project_id and p.owner_id=(select auth.uid())));
+-- Membership role updates are intentionally deferred to the authorized RPC in migration 20260827210000.
 create policy project_memberships_delete_own on public.project_memberships for delete to authenticated using (user_id=(select auth.uid()) or exists (select 1 from public.projects p where p.id=project_id and p.owner_id=(select auth.uid())));
 
 -- Automatically make project owners members.
