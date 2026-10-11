@@ -13,6 +13,7 @@ create policy local_agent_tasks_insert_workspace on public.local_agent_tasks for
     select 1 from public.project_memberships pm
     where pm.project_id = local_agent_tasks.project_id
       and pm.user_id = (select auth.uid())
+      and pm.role in ('owner', 'administrator', 'developer', 'operator')
   )
   and (
     mission_id is null
