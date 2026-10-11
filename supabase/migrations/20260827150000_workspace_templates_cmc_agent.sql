@@ -191,21 +191,17 @@ create policy projects_delete_workspace on public.projects for delete to authent
 drop policy if exists project_memberships_insert_own on public.project_memberships;
 drop policy if exists project_memberships_update_own on public.project_memberships;
 drop policy if exists project_memberships_delete_own on public.project_memberships;
-create policy project_memberships_insert_managed on public.project_memberships for insert to authenticated with check (
-  public.can_manage_project(project_id,(select auth.uid()))
-  AND (
-    role in ('administrator','developer','researcher','operator','viewer')
-    OR (
-      role = 'owner'
-      AND user_id = (SELECT auth.uid())
-      AND EXISTS (
-        SELECT 1 FROM public.projects p
-        WHERE p.id = project_memberships.project_id
-          AND p.owner_id = (SELECT auth.uid())
-      )
+create policy project_memberships_insert_managed on public.project_memberships
+  for insert to authenticated
+  with check (
+    role = 'owner'
+    AND user_id = (SELECT auth.uid())
+    AND EXISTS (
+      SELECT 1 FROM public.projects p
+      WHERE p.id = project_memberships.project_id
+        AND p.owner_id = (SELECT auth.uid())
     )
-  )
-);
+  );
 create policy project_memberships_update_managed on public.project_memberships for update to authenticated using (public.can_manage_project(project_id,(select auth.uid()))) with check (public.can_manage_project(project_id,(select auth.uid())) and role in ('administrator','developer','researcher','operator','viewer'));
 create policy project_memberships_delete_managed on public.project_memberships for delete to authenticated using (
   public.can_manage_project(project_id,(select auth.uid()))
