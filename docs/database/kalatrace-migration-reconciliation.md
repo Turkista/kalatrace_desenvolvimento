@@ -58,7 +58,7 @@ A migração `20261011153829_harden_infrastructure_watchdog_admin_access.sql` fo
 - validar estados recebidos e rejeitar snapshot inexistente;
 - manter revogados os privilégios diretos de escrita para usuários autenticados.
 
-**Estado desta correção:** arquivo criado na branch de trabalho; aplicação remota e verificação pós-migração ainda precisam ser confirmadas. A função de autorização deve ser testada por catálogo e a migração deve passar pelo CI antes de ser incorporada à `main`.
+**Estado desta correção:** migração aplicada no projeto remoto e registrada como `20261011153829 harden_infrastructure_watchdog_admin_access`. A consulta ao catálogo confirmou as quatro RPCs com `SECURITY DEFINER`, `search_path` vazio, execução negada a `anon` e concedida a `authenticated`, com verificação administrativa dentro das funções. A allowlist contém o administrador inicial; os privilégios diretos de UPDATE/DELETE para `authenticated` continuam negados. Um teste SQL com claims simulados confirmou que o administrador inicial consegue consultar métricas e que um UID não autorizado é bloqueado nas três RPCs. Isso ainda não substitui um teste end-to-end por PostgREST com duas sessões reais.
 
 ## Sequência de reconciliação
 
