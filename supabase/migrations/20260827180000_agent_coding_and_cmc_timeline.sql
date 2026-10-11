@@ -8,7 +8,7 @@ create or replace function public.append_cmc_mission_timeline(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_row public.cmc_missions%rowtype;
@@ -17,7 +17,7 @@ begin
   select * into v_row
   from public.cmc_missions
   where id = p_mission_id
-    and owner_id = auth.uid()
+    and owner_id = (SELECT auth.uid())
   for update;
 
   if not found then
@@ -28,14 +28,14 @@ begin
 
   update public.cmc_missions
   set timeline = v_timeline,
-      updated_at = now()
+      updated_at = pg_catalog.now()
   where id = p_mission_id;
 
   return v_timeline;
 end;
 $$;
 
-revoke all on function public.append_cmc_mission_timeline(uuid,jsonb) from public;
+revoke all on function public.append_cmc_mission_timeline(uuid,jsonb) from public, anon;
 grant execute on function public.append_cmc_mission_timeline(uuid,jsonb) to authenticated;
 
 -- Explicitly document the controlled code operation family at the database level.
