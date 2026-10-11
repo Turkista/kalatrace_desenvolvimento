@@ -35,7 +35,7 @@ begin
 end;
 $$;
 
-revoke all on function public.append_cmc_mission_timeline(uuid,jsonb) from public, anon;
+revoke all on function public.append_cmc_mission_timeline(uuid,jsonb) from public, anon, authenticated;
 grant execute on function public.append_cmc_mission_timeline(uuid,jsonb) to authenticated;
 
 -- Explicitly document the controlled code operation family at the database level.
