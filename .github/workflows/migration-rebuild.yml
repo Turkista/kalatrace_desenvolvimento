@@ -1,0 +1,57 @@
+name: Clean Supabase migration rebuild
+
+on:
+  push:
+    branches:
+      - chore/reconcile-supabase-migration-history
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - "scripts/security_e2e.py"
+      - ".github/workflows/migration-rebuild.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  clean-rebuild:
+    name: Rebuild database and test authenticated authorization
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Initialize local Supabase config
+        run: supabase init --force
+
+      - name: Start isolated local Supabase stack
+        run: supabase start
+
+      - name: Apply every active migration to a clean database
+        run: supabase db reset
+
+      - name: Verify local Supabase services
+        run: supabase status
+
+      - name: Run two-user authenticated authorization tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -a
+          source <(supabase status -o env)
+          set +a
+          export SUPABASE_URL="${API_URL:?Supabase API_URL missing}"
+          export SUPABASE_ANON_KEY="${ANON_KEY:?Supabase ANON_KEY missing}"
+          export SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:?Supabase SERVICE_ROLE_KEY missing}"
+          python scripts/security_e2e.py
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop --no-backup
