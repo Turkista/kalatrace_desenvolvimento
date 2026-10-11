@@ -76,7 +76,7 @@ drop policy if exists project_invitations_select on public.project_invitations;
 drop policy if exists project_invitations_insert on public.project_invitations;
 drop policy if exists project_invitations_update on public.project_invitations;
 create policy project_invitations_select on public.project_invitations for select to authenticated using (
- invited_by=(select auth.uid()) or public.can_manage_project(project_id,(select auth.uid())) or lower(email)=lower((select email from auth.users where id=(select auth.uid())))
+ invited_by=(select auth.uid()) or public.can_manage_project(project_id,(select auth.uid())) or lower(email)=lower((select auth.jwt()->>'email'))
 );
 create policy project_invitations_insert on public.project_invitations for insert to authenticated with check (public.can_manage_project(project_id,(select auth.uid())) and invited_by=(select auth.uid()));
 create policy project_invitations_update on public.project_invitations for update to authenticated using (public.can_manage_project(project_id,(select auth.uid()))) with check (public.can_manage_project(project_id,(select auth.uid())));
@@ -94,9 +94,7 @@ BEGIN
   WHERE lower(i.email) = lower(NEW.email)
     AND i.status = 'pending'
     AND i.expires_at > pg_catalog.now()
-  ON CONFLICT (project_id, user_id) DO UPDATE
-    SET role = EXCLUDED.role, updated_at = pg_catalog.now()
-    WHERE public.project_memberships.role <> 'owner';
+  ON CONFLICT (project_id, user_id) DO NOTHING;
 
   UPDATE public.project_invitations AS i
   SET status = 'accepted', updated_at = pg_catalog.now()
@@ -181,7 +179,7 @@ drop policy if exists projects_select_own on public.projects;
 drop policy if exists projects_update_own on public.projects;
 drop policy if exists projects_delete_own on public.projects;
 create policy projects_select_workspace on public.projects for select to authenticated using (
- owner_id=(select auth.uid()) or exists(select 1 from public.project_memberships pm where pm.project_id=projects.id and pm.user_id=(select auth.uid()))
+ owner_id IS NULL OR owner_id=(select auth.uid()) or exists(select 1 from public.project_memberships pm where pm.project_id=projects.id and pm.user_id=(select auth.uid()))
 );
 create policy projects_update_workspace on public.projects for update to authenticated using (
  owner_id=(select auth.uid()) or exists(select 1 from public.project_memberships pm where pm.project_id=projects.id and pm.user_id=(select auth.uid()) and pm.role in ('owner','administrator'))
@@ -193,7 +191,21 @@ create policy projects_delete_workspace on public.projects for delete to authent
 drop policy if exists project_memberships_insert_own on public.project_memberships;
 drop policy if exists project_memberships_update_own on public.project_memberships;
 drop policy if exists project_memberships_delete_own on public.project_memberships;
-create policy project_memberships_insert_managed on public.project_memberships for insert to authenticated with check (public.can_manage_project(project_id,(select auth.uid())) and role in ('administrator','developer','researcher','operator','viewer'));
+create policy project_memberships_insert_managed on public.project_memberships for insert to authenticated with check (
+  public.can_manage_project(project_id,(select auth.uid()))
+  AND (
+    role in ('administrator','developer','researcher','operator','viewer')
+    OR (
+      role = 'owner'
+      AND user_id = (SELECT auth.uid())
+      AND EXISTS (
+        SELECT 1 FROM public.projects p
+        WHERE p.id = project_memberships.project_id
+          AND p.owner_id = (SELECT auth.uid())
+      )
+    )
+  )
+);
 create policy project_memberships_update_managed on public.project_memberships for update to authenticated using (public.can_manage_project(project_id,(select auth.uid()))) with check (public.can_manage_project(project_id,(select auth.uid())) and role in ('administrator','developer','researcher','operator','viewer'));
 create policy project_memberships_delete_managed on public.project_memberships for delete to authenticated using (
   public.can_manage_project(project_id,(select auth.uid()))
