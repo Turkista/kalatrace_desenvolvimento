@@ -145,5 +145,5 @@ begin
   return coalesce(v_task, 'null'::jsonb);
 end;
 $$;
-revoke all on function public.claim_next_local_agent_task(text) from public, anon;
+revoke all on function public.claim_next_local_agent_task(text) from public, anon, authenticated;
 grant execute on function public.claim_next_local_agent_task(text) to authenticated;
