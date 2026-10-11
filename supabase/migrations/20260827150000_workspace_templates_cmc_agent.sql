@@ -28,7 +28,7 @@ as $$
 begin
   insert into public.workspace_profiles(id,email,full_name,avatar_url)
   values (new.id, coalesce(new.email,''), new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url')
-  on conflict (id) do update set email=excluded.email, full_name=coalesce(excluded.full_name,public.workspace_profiles.full_name), avatar_url=coalesce(excluded.avatar_url,workspace_profiles.avatar_url), updated_at=pg_catalog.now();
+  on conflict (id) do update set email=excluded.email, full_name=coalesce(excluded.full_name,public.public.workspace_profiles.full_name), avatar_url=coalesce(excluded.avatar_url,public.workspace_profiles.avatar_url), updated_at=pg_catalog.now();
   return new;
 end;
 $$;
@@ -38,7 +38,7 @@ for each row execute function public.handle_new_workspace_profile();
 revoke all on function public.handle_new_workspace_profile() from public, anon, authenticated;
 insert into public.workspace_profiles(id,email,full_name,avatar_url)
 select id,coalesce(email,''),raw_user_meta_data->>'full_name',raw_user_meta_data->>'avatar_url' from auth.users
-on conflict (id) do update set email=excluded.email, full_name=coalesce(excluded.full_name,workspace_profiles.full_name), avatar_url=coalesce(excluded.avatar_url,workspace_profiles.avatar_url), updated_at=now();
+on conflict (id) do update set email=excluded.email, full_name=coalesce(excluded.full_name,public.workspace_profiles.full_name), avatar_url=coalesce(excluded.avatar_url,public.workspace_profiles.avatar_url), updated_at=pg_catalog.now();
 
 create table if not exists public.project_invitations (
   id uuid primary key default gen_random_uuid(),
@@ -76,10 +76,10 @@ drop policy if exists project_invitations_select on public.project_invitations;
 drop policy if exists project_invitations_insert on public.project_invitations;
 drop policy if exists project_invitations_update on public.project_invitations;
 create policy project_invitations_select on public.project_invitations for select to authenticated using (
- invited_by=(select auth.uid()) or can_manage_project(project_id,(select auth.uid())) or lower(email)=lower((select email from auth.users where id=(select auth.uid())))
+ invited_by=(select auth.uid()) or public.can_manage_project(project_id,(select auth.uid())) or lower(email)=lower((select email from auth.users where id=(select auth.uid())))
 );
-create policy project_invitations_insert on public.project_invitations for insert to authenticated with check (can_manage_project(project_id,(select auth.uid())) and invited_by=(select auth.uid()));
-create policy project_invitations_update on public.project_invitations for update to authenticated using (can_manage_project(project_id,(select auth.uid()))) with check (can_manage_project(project_id,(select auth.uid())));
+create policy project_invitations_insert on public.project_invitations for insert to authenticated with check (public.can_manage_project(project_id,(select auth.uid())) and invited_by=(select auth.uid()));
+create policy project_invitations_update on public.project_invitations for update to authenticated using (public.can_manage_project(project_id,(select auth.uid()))) with check (public.can_manage_project(project_id,(select auth.uid())));
 create or replace function public.accept_pending_project_invitations()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
 AS $function$
@@ -132,7 +132,7 @@ insert into public.project_templates(slug,name,description,project_type,configur
 ('robotics','Projeto de robótica','Base para ativos robóticos e missões.','robotics','{"modules":["cmc","robotics"],"engines":["prediction","simulation"],"skills":["robotics"],"cmc":true,"knowledge_graph":true}'),
 ('simulation','Projeto de simulação','Ambiente para cenários e execução simulada.','custom','{"modules":["simulation","cmc"],"engines":["simulation","prediction"],"skills":[],"cmc":true,"knowledge_graph":true}'),
 ('knowledge-graph','Projeto Knowledge Graph','Projeto centrado em conhecimento estruturado.','custom','{"modules":["knowledge_graph","evidence","validation"],"engines":["reasoning","knowledge_evolution"],"skills":[],"cmc":false,"knowledge_graph":true}')
-on conflict(slug) do update set configuration=excluded.configuration,updated_at=now();
+on conflict(slug) do update set configuration=excluded.configuration,updated_at=pg_catalog.now();
 
 create table if not exists public.cmc_commands (
  id uuid primary key default gen_random_uuid(), mission_id uuid not null references public.cmc_missions(id) on delete cascade,
@@ -193,9 +193,16 @@ create policy projects_delete_workspace on public.projects for delete to authent
 drop policy if exists project_memberships_insert_own on public.project_memberships;
 drop policy if exists project_memberships_update_own on public.project_memberships;
 drop policy if exists project_memberships_delete_own on public.project_memberships;
-create policy project_memberships_insert_managed on public.project_memberships for insert to authenticated with check (can_manage_project(project_id,(select auth.uid())));
-create policy project_memberships_update_managed on public.project_memberships for update to authenticated using (can_manage_project(project_id,(select auth.uid()))) with check (can_manage_project(project_id,(select auth.uid())));
-create policy project_memberships_delete_managed on public.project_memberships for delete to authenticated using (can_manage_project(project_id,(select auth.uid())));
+create policy project_memberships_insert_managed on public.project_memberships for insert to authenticated with check (public.can_manage_project(project_id,(select auth.uid())) and role in ('administrator','developer','researcher','operator','viewer'));
+create policy project_memberships_update_managed on public.project_memberships for update to authenticated using (public.can_manage_project(project_id,(select auth.uid()))) with check (public.can_manage_project(project_id,(select auth.uid())) and role in ('administrator','developer','researcher','operator','viewer'));
+create policy project_memberships_delete_managed on public.project_memberships for delete to authenticated using (
+  public.can_manage_project(project_id,(select auth.uid()))
+  AND NOT EXISTS (
+    SELECT 1 FROM public.projects p
+    WHERE p.id = project_memberships.project_id
+      AND p.owner_id = project_memberships.user_id
+  )
+);
 
 -- Mission artifacts are visible to the mission owner. Project-level expansion can be added later.
 
