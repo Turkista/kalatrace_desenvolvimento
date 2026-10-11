@@ -221,7 +221,14 @@ grant insert,update on public.local_agent_instances to authenticated;
 drop policy if exists local_agent_instances_read on public.local_agent_instances;
 create policy local_agent_instances_read on public.local_agent_instances for select to authenticated using(owner_id=(select auth.uid()));
 drop policy if exists local_agent_instances_write on public.local_agent_instances;
-create policy local_agent_instances_write on public.local_agent_instances for all to authenticated using(owner_id=(select auth.uid())) with check(owner_id=(select auth.uid()));
+drop policy if exists local_agent_instances_insert on public.local_agent_instances;
+drop policy if exists local_agent_instances_update on public.local_agent_instances;
+create policy local_agent_instances_insert on public.local_agent_instances
+  for insert to authenticated with check (owner_id = (select auth.uid()));
+create policy local_agent_instances_update on public.local_agent_instances
+  for update to authenticated
+  using (owner_id = (select auth.uid()))
+  with check (owner_id = (select auth.uid()));
 
 -- Runtime CMC entities use the same UUIDs as the in-process entities, so the
 -- database can become the durable source of mission history without a second ID map.
