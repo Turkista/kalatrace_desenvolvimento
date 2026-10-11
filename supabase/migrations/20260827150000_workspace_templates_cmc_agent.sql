@@ -189,9 +189,10 @@ create policy projects_update_workspace on public.projects for update to authent
 create policy projects_delete_workspace on public.projects for delete to authenticated using (owner_id=(select auth.uid()));
 
 drop policy if exists project_memberships_insert_own on public.project_memberships;
+drop policy if exists project_memberships_insert_owner on public.project_memberships;
 drop policy if exists project_memberships_update_own on public.project_memberships;
 drop policy if exists project_memberships_delete_own on public.project_memberships;
-create policy project_memberships_insert_managed on public.project_memberships
+create policy project_memberships_insert_owner on public.project_memberships
   for insert to authenticated
   with check (
     role = 'owner'
