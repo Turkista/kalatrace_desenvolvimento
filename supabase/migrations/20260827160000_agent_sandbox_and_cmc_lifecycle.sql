@@ -29,14 +29,14 @@ create policy local_agent_tasks_insert_workspace on public.local_agent_tasks for
 );
 create policy local_agent_tasks_update_workspace on public.local_agent_tasks for update to authenticated using (
   owner_id = (select auth.uid()) or exists (
-    select 1 from public.project_memberships pm where pm.project_id = local_agent_tasks.project_id and pm.user_id = (select auth.uid()) and pm.role in ('owner','administrator','developer')
+    select 1 from public.project_memberships pm where pm.project_id = local_agent_tasks.project_id and pm.user_id = (select auth.uid()) and pm.role in ('owner','administrator','developer','operator')
   )
 ) with check (
   owner_id = (SELECT auth.uid()) OR EXISTS (
     SELECT 1 FROM public.project_memberships pm
     WHERE pm.project_id = local_agent_tasks.project_id
       AND pm.user_id = (SELECT auth.uid())
-      AND pm.role IN ('owner', 'administrator', 'developer')
+      AND pm.role IN ('owner', 'administrator', 'developer', 'operator')
   )
 );
 
