@@ -209,6 +209,13 @@ def main() -> int:
         )
         require(status >= 400,
                 "Non-admin user could call watchdog runtime SECURITY DEFINER RPC.")
+        status, payload = request(
+            "POST", "/rest/v1/rpc/claim_next_local_agent_task",
+            key=ANON_KEY, token=token_b,
+            body={"p_instance_name": "security-e2e-unowned-instance"},
+        )
+        require(status >= 400,
+                "User B could claim a task without owning the local agent instance.")
         passed.append("CMC/workspace/watchdog SECURITY DEFINER RPCs reject unauthorized sessions")
 
         print(f"PASS: {len(passed)} authorization checks")
