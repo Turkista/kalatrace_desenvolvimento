@@ -41,7 +41,13 @@ GRANT USAGE ON SCHEMA private TO authenticated;
 
 REVOKE ALL ON FUNCTION private.collect_kalatrace_infrastructure_usage() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.run_kalatrace_watchdog() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION private.run_kalatrace_watchdog_legacy() FROM PUBLIC, anon, authenticated;
+DO $migration$
+BEGIN
+  IF pg_catalog.to_regprocedure('private.run_kalatrace_watchdog_legacy()') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION private.run_kalatrace_watchdog_legacy() FROM PUBLIC, anon, authenticated';
+  END IF;
+END;
+$migration$;
 REVOKE ALL ON FUNCTION private.sync_kalatrace_watchdog_events(bigint) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.can_manage_project(uuid, uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION private.is_kalatrace_infrastructure_admin() FROM PUBLIC, anon, authenticated;
