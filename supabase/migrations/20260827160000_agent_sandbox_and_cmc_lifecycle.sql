@@ -56,6 +56,17 @@ BEGIN
     RAISE EXCEPTION 'Execution specification is immutable after approval';
   END IF;
 
+  IF OLD.approved_at IS NOT NULL
+     AND (NEW.approved_by IS DISTINCT FROM OLD.approved_by
+          OR NEW.approved_at IS DISTINCT FROM OLD.approved_at) THEN
+    RAISE EXCEPTION 'Approval metadata is immutable after approval';
+  END IF;
+
+  IF OLD.approved_at IS NULL AND NEW.approved_at IS NOT NULL
+     AND NEW.status IS DISTINCT FROM 'approved' THEN
+    RAISE EXCEPTION 'Approval metadata can only be set during approval';
+  END IF;
+
   IF NEW.status = 'approved' AND OLD.status IS DISTINCT FROM 'approved' THEN
     IF NEW.approved_by IS DISTINCT FROM (SELECT auth.uid()) OR NEW.approved_at IS NULL THEN
       RAISE EXCEPTION 'Approval metadata must identify the approving user';
