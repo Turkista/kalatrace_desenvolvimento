@@ -42,7 +42,7 @@ begin
   return v_row;
 end;
 $$;
-revoke all on function public.update_project_member_role(uuid,uuid,text) from public, anon;
+revoke all on function public.update_project_member_role(uuid,uuid,text) from public, anon, authenticated;
 grant execute on function public.update_project_member_role(uuid,uuid,text) to authenticated;
 
 -- Role changes must pass through the authorization-checked RPC, not direct PATCH.
