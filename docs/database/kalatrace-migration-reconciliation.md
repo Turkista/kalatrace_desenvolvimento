@@ -7,8 +7,8 @@
 
 ## Resultado atual
 
-- A pasta ativa `supabase/migrations/` tem **27 arquivos**.
-- O histórico remoto `supabase_migrations.schema_migrations` tem **27 versões**.
+- A pasta ativa `supabase/migrations/` tem **28 arquivos**.
+- O histórico remoto `supabase_migrations.schema_migrations` tem **28 versões**.
 - A comparação exata dos prefixos de versão encontrou **zero versões sem arquivo local e zero arquivos ativos sem versão remota**.
 - Foram aplicadas sete migrações de workspace/CMC/agentes que já estavam versionadas no repositório, mas não estavam no banco. Como as versões antigas não existiam no histórico remoto, foram registradas sob novas versões de execução, de `20261011160607` a `20261011160830`.
 - Os SQLs originais dessas sete migrações foram preservados em `_archive/supabase_migrations_original/`. Os arquivos ativos contêm as correções de segurança aplicadas.
