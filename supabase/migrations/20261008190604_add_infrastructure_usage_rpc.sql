@@ -391,6 +391,11 @@ BEGIN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION private.collect_kalatrace_infrastructure_usage() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION private.sync_kalatrace_watchdog_events(bigint) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION private.run_kalatrace_watchdog() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.trg_sync_kalatrace_watchdog_events() FROM PUBLIC, anon, authenticated;
+
 REVOKE ALL ON FUNCTION public.get_kalatrace_infrastructure_usage() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_kalatrace_infrastructure_usage() TO authenticated;
 REVOKE ALL ON FUNCTION public.run_kalatrace_watchdog() FROM PUBLIC, anon;
