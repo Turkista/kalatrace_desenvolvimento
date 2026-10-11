@@ -8,6 +8,7 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/config.toml"
+      - "scripts/security_e2e.py"
       - ".github/workflows/migration-rebuild.yml"
 
 permissions:
@@ -15,7 +16,7 @@ permissions:
 
 jobs:
   clean-rebuild:
-    name: Rebuild database from migrations
+    name: Rebuild database and test authenticated authorization
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -38,6 +39,18 @@ jobs:
 
       - name: Verify local Supabase services
         run: supabase status
+
+      - name: Run two-user authenticated authorization tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -a
+          source <(supabase status -o env)
+          set +a
+          export SUPABASE_URL="${API_URL:?Supabase API_URL missing}"
+          export SUPABASE_ANON_KEY="${ANON_KEY:?Supabase ANON_KEY missing}"
+          export SUPABASE_SERVICE_ROLE_KEY="${SERVICE_ROLE_KEY:?Supabase SERVICE_ROLE_KEY missing}"
+          python scripts/security_e2e.py
 
       - name: Stop local Supabase stack
         if: always()
