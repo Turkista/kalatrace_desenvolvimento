@@ -14,6 +14,7 @@ os.environ.setdefault("NEO4J_ENABLED", "false")
 
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
 from api import main as api_main
 
@@ -153,3 +154,21 @@ def test_epistemic_endpoint_separates_supporting_and_contradicting_evidence(monk
     assert result["evidence"][0]["epistemic_relation"]["relation"] == "SUPPORTS"
     assert result["evidence"][1]["epistemic_relation"]["relation"] == "CONTRADICTS"
     assert result["evidence"][0]["epistemic_relation"]["metadata"] == {"test": True}
+
+def test_epistemic_http_route_serializes_unknown_iec_as_404(monkeypatch):
+    """Exercise FastAPI routing and HTTP error serialization, not only the handler."""
+    monkeypatch.setattr(
+        api_main,
+        "_hydrate_evidence_store_from_supabase",
+        lambda request: None,
+    )
+    monkeypatch.setattr(
+        api_main,
+        "_hydrate_iec_from_supabase",
+        lambda request, iec_id: None,
+    )
+
+    response = TestClient(api_main.app).get(f"/epistemic/iec/{IEC_ID}")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == f"IEC não encontrada: {IEC_ID}"
