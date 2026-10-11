@@ -50,7 +50,7 @@ A consulta ao catálogo remoto confirmou:
 
 ### Correção proposta nesta branch
 
-A migração `20261011160000_harden_infrastructure_watchdog_admin_access.sql` foi preparada para:
+A migração `20261011153829_harden_infrastructure_watchdog_admin_access.sql` foi preparada para:
 
 - criar uma allowlist privada de administradores de infraestrutura e registrar o administrador inicial já existente neste projeto;
 - restringir as políticas RLS de snapshots, eventos e runtime checks a administradores;
