@@ -862,14 +862,30 @@ async function ktApi(path, options={}){
 function ktOpenAuth(message=''){
   const modal=document.getElementById('kt-auth-modal');
   const msg=document.getElementById('kt-auth-msg');
-  modal.style.display='flex';
-  msg.textContent=message;
-  msg.style.color=message?'var(--danger)':'var(--text-secondary)';
+  if(!modal){
+    console.error('[KALATRACE] O formulário de autenticação não foi encontrado.');
+    return;
+  }
+  // Always clear the hidden state and place login above the onboarding overlays.
+  modal.hidden=false;
+  modal.style.setProperty('display','flex','important');
+  modal.style.setProperty('position','fixed','important');
+  modal.style.setProperty('inset','0','important');
+  modal.style.setProperty('z-index','2147483647','important');
+  if(msg){
+    msg.textContent=message||'Entre com sua conta KALATRACE para continuar.';
+    msg.style.color=message?'var(--danger)':'var(--text-secondary)';
+  }
   const email=document.getElementById('kt-auth-email');
   const password=document.getElementById('kt-auth-password');
-  (email.value.trim()?password:email).focus();
+  if(email&&password)(email.value.trim()?password:email).focus();
 }
-function ktCloseAuth(){document.getElementById('kt-auth-modal').style.display='none'}
+function ktCloseAuth(){
+  const modal=document.getElementById('kt-auth-modal');
+  if(!modal)return;
+  modal.style.setProperty('display','none','important');
+  modal.hidden=true;
+}
 async function ktLogin(event){
   if(event)event.preventDefault();
   const form=document.getElementById('kt-auth-form');
@@ -1030,7 +1046,7 @@ window.obEnterProject = obEnterProject;
       const app = document.getElementById('app-root');
       const modal = document.getElementById('kt-auth-modal');
       const appVisible = !!app && app.style.display !== 'none';
-      const authVisible = !!modal && !modal.hidden && modal.style.display !== 'none';
+      const authVisible = !!modal && !modal.hidden && window.getComputedStyle(modal).display !== 'none';
       if (opened === true || appVisible) {
         button.textContent = 'Ambiente aberto';
         if (status) { status.hidden = true; status.textContent = ''; }
