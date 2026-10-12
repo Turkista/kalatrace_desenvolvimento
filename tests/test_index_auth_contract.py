@@ -44,3 +44,9 @@ def test_workspace_requires_authentication_before_project_selection():
     assert "window.KT_AUTH_CONTINUE=obGoWorkspace" in workspace_flow
     assert workspace_flow.index("ktEnsureAuth") < workspace_flow.index("obFade")
     assert "const resume=window.KT_AUTH_CONTINUE" in HTML
+
+
+def test_api_base_defaults_to_deployed_render_service_and_allows_override():
+    assert "window.KALATRACE_API_BASE || 'https://kalatrace-desenvolvimento.onrender.com'" in HTML
+    assert "window.KALATRACE_API_BASE || 'http://127.0.0.1:8000'" not in HTML
+    assert "fetch(KT_API_BASE+path" in HTML
