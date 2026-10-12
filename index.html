@@ -1081,9 +1081,7 @@ window.obEnterProject = obEnterProject;
         return;
       }
       const app = document.getElementById('app-root');
-      const modal = document.getElementById('kt-auth-modal');
       const appVisible = !!app && app.style.display !== 'none';
-      const authVisible = !!modal && !modal.hidden && (modal.open || modal.hasAttribute('open')) && window.getComputedStyle(modal).display !== 'none';
       if (opened === true || appVisible) {
         button.textContent = 'Ambiente aberto';
         if (status) { status.hidden = true; status.textContent = ''; }
@@ -1092,18 +1090,11 @@ window.obEnterProject = obEnterProject;
       button.disabled = false;
       button.textContent = 'Entrar no projeto';
       if (status) {
-        status.textContent = authVisible
-          ? 'Entre com sua conta KALATRACE na janela de autenticação para continuar.'
-          : 'A entrada foi acionada, mas o ambiente não abriu. Confira a mensagem exibida aqui e tente novamente.';
+        status.textContent = 'A entrada não concluiu a abertura do ambiente. Recarregue a página e tente novamente.';
+        status.style.color = 'var(--danger)';
         status.hidden = false;
       }
-      if (authVisible) {
-        modal.style.setProperty('position', 'fixed', 'important');
-        modal.style.setProperty('inset', '0', 'important');
-        modal.style.setProperty('z-index', '2147483647', 'important');
-      } else {
-        console.error('[KALATRACE] A entrada do projeto terminou sem abrir o ambiente nem o formulário de autenticação.');
-      }
+      console.error('[KALATRACE] A entrada do projeto terminou sem concluir a navegação para login ou abrir o ambiente.');
     } catch (error) {
       button.disabled = false;
       button.textContent = 'Tentar entrar novamente';
