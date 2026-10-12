@@ -659,6 +659,28 @@ window.setTimeout(function () {
   </main>
 </div>
 <script>
+/* Expose handlers explicitly for later inline scripts and HTML onclicks.
+   Function declarations are hoisted, so these exports are available before UI boot. */
+const KT_API_BASE = (window.KALATRACE_API_BASE || 'https://kalatrace-desenvolvimento.onrender.com').replace(/\/$/, '');
+window.KT_API_BASE = KT_API_BASE;
+window.inputField = inputField;
+window.renderForm = renderForm;
+window.showPanel = showPanel;
+window.ktToken = ktToken;
+window.ktSetAuthIdentity = ktSetAuthIdentity;
+window.ktApi = ktApi;
+window.ktOpenAuth = ktOpenAuth;
+window.ktCloseAuth = ktCloseAuth;
+window.ktLogin = ktLogin;
+window.ktTogglePassword = ktTogglePassword;
+window.ktEnsureAuth = ktEnsureAuth;
+window.ktLogout = ktLogout;
+window.ktFormData = ktFormData;
+window.saveDemo = saveDemo;
+window.ktLoadResearchForms = ktLoadResearchForms;
+window.ktRefreshBackendStatus = ktRefreshBackendStatus;
+window.clearForm = clearForm;
+window.showScreen = showScreen;
 const forms=[
 {id:'lote',label:'Caracterização de lote',stage:'Qualquer etapa',title:'Ficha de caracterização de lote (IFA)',fields:[['Responsável pelo preenchimento','text'],['Etapa do programa','select',['Mestrado','Doutorado Ano 1-2','Doutorado Ano 3-4','Pós-Doutorado']],['Ativo','select',['Bakuchiol','Resveratrol','Combinação Bakuchiol+Resveratrol']],['Número do lote','text'],['Fornecedor','text'],['Data de recebimento','date'],['Validade','date'],['Pureza (%)','number'],['Método analítico usado','text'],['Condição de armazenamento','text'],['Observações','textarea']]},
 {id:'dose',label:'Curva dose-resposta',stage:'Mestrado',title:'Protocolo de curva dose-resposta (EC50 / NOAEL)',custom:'dose'},
@@ -673,7 +695,7 @@ function inputField(label,type,options){let id='f_'+Math.random().toString(36).s
 function renderForm(f){if(f.custom==='dose')return `<div class="form-card"><div class="form-head"><h2 class="card-title">${f.title}</h2><span class="stage-pill">${f.stage}</span></div><p class="note">Registro estruturado para os pontos de concentração e resposta, com leitura de EC50 / NOAEL.</p><div class="form-grid"><div class="field"><label>Responsável</label><input></div><div class="field"><label>Ativo</label><select><option>Bakuchiol</option><option>Resveratrol</option><option>Combinação Bakuchiol+Resveratrol</option></select></div><div class="field"><label>Lote</label><input></div><div class="field"><label>Modelo celular</label><input></div><div class="field full"><label>Concentrações</label><div class="dose-grid">${[1,2,3,4,5,6].map(i=>`<input placeholder="Ponto ${i}">`).join('')}</div></div><div class="field full"><label>Respostas observadas</label><textarea placeholder="Informe os valores de resposta correspondentes aos pontos."></textarea></div><div class="field"><label>EC50 calculado</label><input></div><div class="field"><label>NOAEL</label><input></div></div><div class="actions"><button class="primary" onclick="saveDemo(this)">Salvar registro</button><span class="msg"></span></div></div>`;return `<div class="form-card"><div class="form-head"><h2 class="card-title">${f.title}</h2><span class="stage-pill">${f.stage}</span></div>${f.note?`<p class="note">${f.note}</p>`:''}<div class="form-grid">${f.fields.map((x,i)=>inputField(x[0],x[1],x[2]||[])).join('')}</div><div class="actions"><button class="primary" onclick="saveDemo(this)">Salvar registro</button><button type="button" onclick="clearForm(this)">Limpar</button><span class="msg"></span></div></div>`}
 const formTabs=document.getElementById('formTabs'),formPanels=document.getElementById('formPanels');forms.forEach((f,i)=>{let b=document.createElement('button');b.textContent=f.label;b.dataset.id=f.id;b.className=i===0?'active':'';b.onclick=()=>showPanel(f.id);formTabs.appendChild(b);let p=document.createElement('section');p.className='panel'+(i===0?' active':'');p.id='panel-'+f.id;p.innerHTML=renderForm(f);formPanels.appendChild(p)});let rb=document.createElement('button');rb.textContent='Painel de leitura';rb.dataset.id='reading';rb.onclick=()=>showPanel('reading');formTabs.appendChild(rb);
 function showPanel(id){document.querySelectorAll('#formTabs button').forEach(b=>b.classList.toggle('active',b.dataset.id===id));document.querySelectorAll('#formPanels .panel').forEach(p=>p.classList.remove('active'));document.getElementById('readingPanel').style.display=id==='reading'?'block':'none';if(id!=='reading')document.getElementById('panel-'+id).classList.add('active');}
-const KT_API_BASE = (window.KALATRACE_API_BASE || 'https://kalatrace-desenvolvimento.onrender.com').replace(/\/$/, '');
+
 function ktToken(){return sessionStorage.getItem('kalatrace_access_token')||''}
 function ktSetAuthIdentity(user){
   const email=String(user?.email||'').trim();
@@ -844,9 +866,25 @@ document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=
 </div>
 
 <script>
-document.getElementById('kt-auth-form').addEventListener('submit',ktLogin);
-document.getElementById('kt-auth-cancel').onclick=ktCloseAuth;
-document.getElementById('kt-auth-toggle-password').onclick=ktTogglePassword;
+/* Explicitly export this script's entry-flow functions before event wiring. */
+window.ktLoadProjects = ktLoadProjects;
+window.ktSelectProject = ktSelectProject;
+window.obFade = obFade;
+window.obGoWorkspace = obGoWorkspace;
+window.obOpenProject = obOpenProject;
+window.obRunProjectChecks = obRunProjectChecks;
+window.obEnterProject = obEnterProject;
+
+const authForm = document.getElementById('kt-auth-form');
+const authCancel = document.getElementById('kt-auth-cancel');
+const authToggle = document.getElementById('kt-auth-toggle-password');
+if (authForm && typeof window.ktLogin === 'function') {
+  authForm.addEventListener('submit', window.ktLogin);
+} else {
+  console.error('[KALATRACE] O formulário de login não encontrou a função ktLogin.');
+}
+if (authCancel && typeof window.ktCloseAuth === 'function') authCancel.onclick = window.ktCloseAuth;
+if (authToggle && typeof window.ktTogglePassword === 'function') authToggle.onclick = window.ktTogglePassword;
 window.KT_AUTH_CONTINUE=null;
 window.KT_PROJECTS=[];window.KT_ACTIVE_PROJECT='medikalat';window.KT_ACTIVE_PROJECT_ID=null;window.KT_ACTIVE_PROJECT_META={};
 async function ktLoadProjects(){try{const d=await ktApi('/projects');window.KT_PROJECTS=d.projects||[];return window.KT_PROJECTS}catch(e){return []}}
@@ -936,22 +974,50 @@ async function obEnterProject(){
 </script>
 <script>
 (async function(){
-  ktSetAuthIdentity(null);
-  if(ktToken()){
+  window.ktSetAuthIdentity(null);
+  if(window.ktToken()){
     try{
-      const user=await ktApi('/auth/me');
-      ktSetAuthIdentity(user);
-      await ktLoadProjects();
-      await ktRefreshBackendStatus();
+      const user=await window.ktApi('/auth/me');
+      window.ktSetAuthIdentity(user);
+      await window.ktLoadProjects();
+      await window.ktRefreshBackendStatus();
     }catch(e){
       sessionStorage.removeItem('kalatrace_access_token');
-      ktSetAuthIdentity(null);
+      window.ktSetAuthIdentity(null);
     }
   }
   const graphScreen=document.getElementById('screen-grafo');
-  if(graphScreen){const btn=document.createElement('button');btn.className='primary';btn.textContent='Atualizar grafo real';btn.onclick=async()=>{try{const d=await ktApi('/neo4j/graph');const b=graphScreen.querySelector('.page-head');let m=document.getElementById('kt-graph-sync');if(!m){m=document.createElement('span');m.id='kt-graph-sync';m.className='badge success';b.querySelector('.page-title').append(' ');b.querySelector('.page-title').appendChild(m)}m.textContent='Neo4j: '+(d.nodes?.length||0)+' nós · '+(d.edges?.length||0)+' relações'}catch(e){alert('Não foi possível consultar o Neo4j: '+e.message)}};graphScreen.querySelector('.page-head')?.appendChild(btn);}
+  if(graphScreen){const btn=document.createElement('button');btn.className='primary';btn.textContent='Atualizar grafo real';btn.onclick=async()=>{try{const d=await window.ktApi('/neo4j/graph');const b=graphScreen.querySelector('.page-head');let m=document.getElementById('kt-graph-sync');if(!m){m=document.createElement('span');m.id='kt-graph-sync';m.className='badge success';b.querySelector('.page-title').append(' ');b.querySelector('.page-title').appendChild(m)}m.textContent='Neo4j: '+(d.nodes?.length||0)+' nós · '+(d.edges?.length||0)+' relações'}catch(e){alert('Não foi possível consultar o Neo4j: '+e.message)}};graphScreen.querySelector('.page-head')?.appendChild(btn);}
 })();
 </script><script>
+window.ktRoboticsCall = ktRoboticsCall;
+window.ktRobotConnect = ktRobotConnect;
+window.ktRobotDisconnect = ktRobotDisconnect;
+window.ktRefreshRobotStatus = ktRefreshRobotStatus;
+window.ktRoboticsRefresh = ktRoboticsRefresh;
+window.ktStartMission = ktStartMission;
+window.ktLoadMissions = ktLoadMissions;
+window.ktExecuteRobotCommand = ktExecuteRobotCommand;
+window.ktSendRobotSensor = ktSendRobotSensor;
+window.ktCmc = ktCmc;
+window.ktAgentRefresh = ktAgentRefresh;
+window.ktAgentInstances = ktAgentInstances;
+window.ktAgentCreateTask = ktAgentCreateTask;
+window.ktAgentApprove = ktAgentApprove;
+window.ktControlRefresh = ktControlRefresh;
+window.ktWorkspaceRefresh = ktWorkspaceRefresh;
+window.ktWorkspaceMembers = ktWorkspaceMembers;
+window.ktWorkspaceInvite = ktWorkspaceInvite;
+window.ktProjectNewForm = ktProjectNewForm;
+window.ktProjectsRender = ktProjectsRender;
+window.ktProjectCreate = ktProjectCreate;
+window.ktProjectTemplates = ktProjectTemplates;
+window.ktProjectUseTemplate = ktProjectUseTemplate;
+window.ktCmcRefresh = ktCmcRefresh;
+window.ktCmcCreateMission = ktCmcCreateMission;
+window.ktLoadOpenApi = ktLoadOpenApi;
+window.ktPickEndpoint = ktPickEndpoint;
+window.ktExecuteApiExplorer = ktExecuteApiExplorer;
 async function ktRoboticsCall(path,method='POST',body){return ktApi(path,{method,body:body===undefined?undefined:JSON.stringify(body)})}
 async function ktRobotConnect(){try{const r=await ktRoboticsCall('/robotics/connect','POST',{robot_id:document.getElementById('robot-id').value,endpoint:document.getElementById('robot-endpoint').value});document.getElementById('robot-status').textContent=JSON.stringify(r,null,2);await ktRefreshRobotStatus()}catch(e){document.getElementById('robot-status').textContent=e.message}}
 async function ktRobotDisconnect(){try{const r=await ktRoboticsCall('/robotics/disconnect','POST',{robot_id:document.getElementById('robot-id').value});document.getElementById('robot-status').textContent=JSON.stringify(r,null,2)}catch(e){document.getElementById('robot-status').textContent=e.message}}
@@ -982,6 +1048,12 @@ function ktPickEndpoint(method,path){document.getElementById('api-method').value
 async function ktExecuteApiExplorer(){try{const method=document.getElementById('api-method').value,path=document.getElementById('api-path').value;const o={method};if(['POST','PATCH','PUT','DELETE'].includes(method))o.body=document.getElementById('api-body').value||'{}';document.getElementById('api-explorer-output').textContent=JSON.stringify(await ktApi(path,o),null,2)}catch(e){document.getElementById('api-explorer-output').textContent=e.message}}
 </script>
 <script>
+window.ktFormatBytes = ktFormatBytes;
+window.ktInfraBadge = ktInfraBadge;
+window.ktInfrastructureRefresh = ktInfrastructureRefresh;
+window.ktWatchdogRun = ktWatchdogRun;
+window.ktWatchdogRefresh = ktWatchdogRefresh;
+window.ktEscapeHtml = ktEscapeHtml;
 function ktFormatBytes(bytes){
   if(bytes===0)return '0 B';
   const units=['B','KB','MB','GB','TB']; const i=Math.floor(Math.log(bytes)/Math.log(1024));

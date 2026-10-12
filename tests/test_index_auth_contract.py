@@ -33,8 +33,9 @@ def test_logout_clears_local_token_even_if_api_logout_fails():
 
 def test_auth_handlers_are_bound_after_modal_markup_exists():
     modal_position = HTML.index('<div id="kt-auth-modal"')
-    handler_position = HTML.index("document.getElementById('kt-auth-form').addEventListener")
+    handler_position = HTML.index("const authForm = document.getElementById('kt-auth-form')")
     assert handler_position > modal_position
+    assert "authForm.addEventListener('submit', window.ktLogin)" in HTML
 
 def test_workspace_requires_authentication_before_project_selection():
     start = HTML.index("async function obGoWorkspace()")
@@ -56,7 +57,7 @@ def test_splash_transition_is_independent_of_auth_bootstrap():
     fallback_start = HTML.index('<script id="kt-splash-fallback">')
     workspace_start = HTML.index("<!-- 3. WORKSPACE -->")
     app_bootstrap_start = HTML.index("const forms=[")
-    auth_binding_start = HTML.index("document.getElementById('kt-auth-form').addEventListener")
+    auth_binding_start = HTML.index("const authForm = document.getElementById('kt-auth-form')")
 
     fallback = HTML[fallback_start:workspace_start]
     assert fallback_start < workspace_start < app_bootstrap_start < auth_binding_start
@@ -83,3 +84,20 @@ def test_workspace_registers_login_continuation_before_auth_check():
     end = HTML.index("// 3 -> 4", start)
     flow = HTML[start:end]
     assert flow.index("window.KT_AUTH_CONTINUE=obGoWorkspace") < flow.index("ktEnsureAuth")
+
+
+def test_cross_script_handlers_are_exported_explicitly_before_boot():
+    main_script_start = HTML.index("/* Expose handlers explicitly for later inline scripts and HTML onclicks.")
+    forms_init = HTML.index("const forms=[")
+    api_client_init = HTML.index("const KT_API_BASE =")
+    assert main_script_start < api_client_init < forms_init
+    for name in ("ktLogin", "ktSetAuthIdentity", "ktApi", "ktToken", "ktOpenAuth", "ktCloseAuth"):
+        assert f"window.{name} = {name};" in HTML
+    assert "authForm.addEventListener('submit', window.ktLogin)" in HTML
+    assert "window.ktSetAuthIdentity(null)" in HTML
+    assert "window.ktApi('/auth/me')" in HTML
+
+
+def test_later_ui_handlers_are_explicitly_exported_for_html_callbacks():
+    for name in ("obGoWorkspace", "obEnterProject", "ktRoboticsRefresh", "ktAgentRefresh", "ktInfrastructureRefresh", "ktWatchdogRefresh"):
+        assert f"window.{name} = {name};" in HTML
