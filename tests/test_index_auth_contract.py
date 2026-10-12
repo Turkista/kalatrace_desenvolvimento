@@ -30,3 +30,8 @@ def test_logout_clears_local_token_even_if_api_logout_fails():
     assert "finally{" in logout
     assert "sessionStorage.removeItem('kalatrace_access_token')" in logout
     assert "document.getElementById('app-root').style.display='none'" in logout
+
+def test_auth_handlers_are_bound_after_modal_markup_exists():
+    modal_position = HTML.index('<div id="kt-auth-modal"')
+    handler_position = HTML.index("document.getElementById('kt-auth-form').addEventListener")
+    assert handler_position > modal_position
