@@ -119,3 +119,7 @@ def test_auth_globals_have_an_independent_early_fallback():
 def test_favicon_uses_an_asset_inside_the_github_pages_project_path():
     assert 'rel="icon" href="/kalatrace_desenvolvimento/assets/asset_eb3da0044c.png" type="image/png"' in HTML
 
+def test_tabler_icons_stylesheet_uses_official_jsdelivr_package_path():
+    assert 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.49.0/dist/tabler-icons.min.css' in HTML
+    assert 'cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css' not in HTML
+\n
