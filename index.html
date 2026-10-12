@@ -162,6 +162,24 @@
   <button class="ob-btn-primary" onclick="obGoWorkspace()">Entrar na plataforma</button>
 </div>
 
+<script id="kt-splash-fallback">
+/* Keep the initial screen independent of API/auth bootstrapping. */
+window.setTimeout(function () {
+  var splash = document.getElementById('ob-splash');
+  var welcome = document.getElementById('ob-welcome');
+  if (!splash || !welcome) {
+    console.error('[KALATRACE] Não foi possível encontrar as telas de abertura e boas-vindas.');
+    return;
+  }
+  splash.classList.add('hide');
+  window.setTimeout(function () {
+    splash.hidden = true;
+    splash.classList.remove('hide');
+    welcome.hidden = false;
+  }, 480);
+}, 2200);
+</script>
+
 <!-- 3. WORKSPACE -->
 <div class="ob-screen" id="ob-workspace" hidden>
   <div class="ob-ws-top">
@@ -800,8 +818,7 @@ function obFade(hideId, showId, cb){
     if(cb) cb();
   }, 480);
 }
-// 1 -> 2 : splash auto-advances
-setTimeout(function(){ obFade('ob-splash','ob-welcome'); }, 2200);
+// Splash auto-advance is handled by the early standalone fallback above.
 
 // 2 -> 3 — autenticação antes de exibir os ambientes do workspace.
 async function obGoWorkspace(){
