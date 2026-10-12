@@ -159,11 +159,53 @@
     <div class="ob-card"><div class="ic" style="background:var(--blue)"><i class="ti ti-apps"></i></div><h3>Projetos</h3><p>Cada aplicação científica — começando pelo MEDIKALAT e pelas que virão — utiliza a mesma infraestrutura cognitiva, mantendo seus próprios dados, regras e identidade.</p></div>
     <div class="ob-card"><div class="ic" style="background:var(--teal)"><i class="ti ti-chart-arrows-vertical"></i></div><h3>Escalabilidade</h3><p>A mesma infraestrutura cognitiva sustenta o projeto piloto MEDIKALAT hoje e pode sustentar múltiplos ecossistemas de pesquisa amanhã.</p></div>
   </div>
-  <button class="ob-btn-primary" id="ob-enter-platform-btn" type="button">Entrar na plataforma</button>
+  <button class="ob-btn-primary" id="ob-enter-platform-btn" type="button" onclick="window.ktShowLoginFromWelcome(); return false;">Entrar na plataforma</button>
 </div>
 
 <script id="kt-splash-fallback">
 /* Keep the initial screen independent of API/auth bootstrapping. */
+window.ktShowLoginFromWelcome = function () {
+  var modal = document.getElementById('kt-auth-modal');
+  var msg = document.getElementById('kt-auth-msg');
+  var email = document.getElementById('kt-auth-email');
+  var password = document.getElementById('kt-auth-password');
+
+  function showLogin(message) {
+    if (!modal || !msg) {
+      var status = document.getElementById('kt-entry-status');
+      if (status) status.textContent = 'Preparando o login. Atualize a página se esta mensagem persistir.';
+      console.error('[KALATRACE] Formulário de autenticação ainda não está disponível.');
+      return;
+    }
+    modal.hidden = false;
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('position', 'fixed', 'important');
+    modal.style.setProperty('inset', '0', 'important');
+    modal.style.setProperty('z-index', '2147483647', 'important');
+    msg.textContent = message || 'Entre com sua conta KALATRACE para continuar.';
+    msg.style.color = 'var(--text-secondary)';
+    if (email && password) (email.value.trim() ? password : email).focus();
+  }
+
+  try {
+    var token = sessionStorage.getItem('kalatrace_access_token') || '';
+    if (token && typeof window.obGoWorkspace === 'function') {
+      window.KT_AUTH_CONTINUE = window.obGoWorkspace;
+      Promise.resolve(window.obGoWorkspace()).catch(function (error) {
+        console.error('[KALATRACE] Falha ao validar a sessão.', error);
+        showLogin('Não foi possível validar sua sessão. Entre novamente com sua conta.');
+      });
+      return;
+    }
+  } catch (error) {
+    console.warn('[KALATRACE] Não foi possível ler a sessão do navegador.', error);
+  }
+
+  window.KT_AUTH_CONTINUE = function () {
+    if (typeof window.obGoWorkspace === 'function') return window.obGoWorkspace();
+  };
+  showLogin('Entre com sua conta KALATRACE para continuar.');
+};
 window.setTimeout(function () {
   var splash = document.getElementById('ob-splash');
   var welcome = document.getElementById('ob-welcome');
@@ -800,49 +842,7 @@ document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=
     </form>
   </div>
 </div>
-<script id="kt-platform-entry-handler">
-/* Keep the platform entry actionable even if another UI initialization fails. */
-(function(){
-  const button=document.getElementById('ob-enter-platform-btn');
-  if(!button)return;
-  button.addEventListener('click',function(event){
-    event.preventDefault();
-    const modal=document.getElementById('kt-auth-modal');
-    const msg=document.getElementById('kt-auth-msg');
-    const email=document.getElementById('kt-auth-email');
-    const password=document.getElementById('kt-auth-password');
-    try{
-      if(typeof window.ktToken==='function' && window.ktToken() &&
-         typeof window.obGoWorkspace==='function'){
-        Promise.resolve(window.obGoWorkspace()).catch(function(error){
-          console.error('[KALATRACE] Não foi possível iniciar a plataforma.',error);
-          if(modal)modal.style.display='flex';
-          if(msg){
-            msg.textContent='Não foi possível validar a sessão. Entre novamente com sua conta.';
-            msg.style.color='var(--danger)';
-          }
-        });
-        return;
-      }
-      // Sem sessão local: abrir o login imediatamente, sem aguardar chamadas à API.
-      window.KT_AUTH_CONTINUE=typeof window.obGoWorkspace==='function'
-        ? window.obGoWorkspace : null;
-      if(!modal || !msg)throw new Error('A interface de autenticação não foi encontrada.');
-      modal.style.display='flex';
-      msg.textContent='Entre com sua conta KALATRACE para continuar.';
-      msg.style.color='var(--text-secondary)';
-      if(email && password)(email.value.trim()?password:email).focus();
-    }catch(error){
-      console.error('[KALATRACE] Falha ao abrir a autenticação.',error);
-      if(modal)modal.style.display='flex';
-      if(msg){
-        msg.textContent='Não foi possível abrir o login. Atualize a página e tente novamente.';
-        msg.style.color='var(--danger)';
-      }
-    }
-  });
-})();
-</script>
+
 <script>
 document.getElementById('kt-auth-form').addEventListener('submit',ktLogin);
 document.getElementById('kt-auth-cancel').onclick=ktCloseAuth;
