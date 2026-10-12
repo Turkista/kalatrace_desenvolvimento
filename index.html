@@ -702,9 +702,6 @@ function ktTogglePassword(){
   button.setAttribute('aria-label',visible?'Ocultar senha':'Mostrar senha');
   button.setAttribute('aria-pressed',String(visible));
 }
-document.getElementById('kt-auth-form').addEventListener('submit',ktLogin);
-document.getElementById('kt-auth-cancel').onclick=ktCloseAuth;
-document.getElementById('kt-auth-toggle-password').onclick=ktTogglePassword;
 async function ktEnsureAuth(){
   if(ktToken()){
     try{
@@ -783,6 +780,9 @@ document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=
   </div>
 </div>
 <script>
+document.getElementById('kt-auth-form').addEventListener('submit',ktLogin);
+document.getElementById('kt-auth-cancel').onclick=ktCloseAuth;
+document.getElementById('kt-auth-toggle-password').onclick=ktTogglePassword;
 window.KT_PROJECTS=[];window.KT_ACTIVE_PROJECT='medikalat';window.KT_ACTIVE_PROJECT_ID=null;window.KT_ACTIVE_PROJECT_META={};
 async function ktLoadProjects(){try{const d=await ktApi('/projects');window.KT_PROJECTS=d.projects||[];return window.KT_PROJECTS}catch(e){return []}}
 function ktSelectProject(slug){const p=window.KT_PROJECTS.find(x=>x.slug===slug)||{slug:slug,name:slug,domain:'KALATRACE'};window.KT_ACTIVE_PROJECT=p.slug;window.KT_ACTIVE_PROJECT_ID=p.id||null;window.KT_ACTIVE_PROJECT_META=p;const n=document.getElementById('active-project-name');if(n)n.textContent=p.name;const d=document.getElementById('active-project-domain');if(d)d.textContent=p.domain||'KALATRACE';document.querySelectorAll('.project-only').forEach(x=>x.style.display='none');if(p.slug==='robotica')document.querySelectorAll('.project-robotica').forEach(x=>x.style.display='flex');if(p.slug==='agente-local')document.querySelectorAll('.project-agent').forEach(x=>x.style.display='flex');const med=document.querySelector('[data-screen="medikalat"]');if(med)med.style.display=p.slug==='medikalat'?'flex':'none';if(p.slug==='robotica')showScreen('robotica');else if(p.slug==='agente-local')showScreen('agente-local');else showScreen('hub');}
