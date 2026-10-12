@@ -186,7 +186,7 @@
       var logout = document.getElementById('kt-logout-button');
       if (label) label.textContent = email || 'Sessão não iniciada';
       if (avatar) avatar.textContent = (name || email || 'KT')
-        .split(/[\\s@._-]+/).filter(Boolean).slice(0, 2)
+        .split(/[\s@._-]+/).filter(Boolean).slice(0, 2)
         .map(function (part) { return part.charAt(0).toUpperCase(); }).join('') || 'KT';
       if (logout) logout.disabled = !window.ktToken();
     };
