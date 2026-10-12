@@ -101,3 +101,21 @@ def test_cross_script_handlers_are_exported_explicitly_before_boot():
 def test_later_ui_handlers_are_explicitly_exported_for_html_callbacks():
     for name in ("obGoWorkspace", "obEnterProject", "ktRoboticsRefresh", "ktAgentRefresh", "ktInfrastructureRefresh", "ktWatchdogRefresh"):
         assert f"window.{name} = {name};" in HTML
+
+def test_auth_globals_have_an_independent_early_fallback():
+    fallback_start = HTML.index('<script id="kt-auth-bootstrap-fallback">')
+    splash_start = HTML.index('<script id="kt-splash-fallback">')
+    main_start = HTML.index("/* Expose handlers explicitly for later inline scripts and HTML onclicks.")
+    assert fallback_start < splash_start < main_start
+    fallback = HTML[fallback_start:HTML.index("</script>", fallback_start)]
+    assert "window.ktLogin = async function (event)" in fallback
+    assert "window.ktSetAuthIdentity = function (user)" in fallback
+    assert "window.ktApi = async function (path, options)" in fallback
+    assert "window.ktEnsureAuth = async function ()" in fallback
+    assert "https://kalatrace-desenvolvimento.onrender.com" in fallback
+    assert "authForm.addEventListener('submit', window.ktLogin)" in HTML
+
+
+def test_favicon_uses_an_asset_inside_the_github_pages_project_path():
+    assert 'rel="icon" href="/kalatrace_desenvolvimento/assets/asset_eb3da0044c.png" type="image/png"' in HTML
+
