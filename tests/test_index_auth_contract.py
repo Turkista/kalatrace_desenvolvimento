@@ -83,3 +83,20 @@ def test_workspace_registers_login_continuation_before_auth_check():
     end = HTML.index("// 3 -> 4", start)
     flow = HTML[start:end]
     assert flow.index("window.KT_AUTH_CONTINUE=obGoWorkspace") < flow.index("ktEnsureAuth")
+
+
+def test_cross_script_handlers_are_exported_explicitly_before_boot():
+    main_script_start = HTML.index("/* Expose handlers explicitly for later inline scripts and HTML onclicks.")
+    forms_init = HTML.index("const forms=[")
+    api_client_init = HTML.index("const KT_API_BASE =")
+    assert main_script_start < api_client_init < forms_init
+    for name in ("ktLogin", "ktSetAuthIdentity", "ktApi", "ktToken", "ktOpenAuth", "ktCloseAuth"):
+        assert f"window.{name} = {name};" in HTML
+    assert "authForm.addEventListener('submit', window.ktLogin)" in HTML
+    assert "window.ktSetAuthIdentity(null)" in HTML
+    assert "window.ktApi('/auth/me')" in HTML
+
+
+def test_later_ui_handlers_are_explicitly_exported_for_html_callbacks():
+    for name in ("obGoWorkspace", "obEnterProject", "ktRoboticsRefresh", "ktAgentRefresh", "ktInfrastructureRefresh", "ktWatchdogRefresh"):
+        assert f"window.{name} = {name};" in HTML
