@@ -659,42 +659,6 @@ window.setTimeout(function () {
   </main>
 </div>
 <script>
-window.ktFormatBytes = ktFormatBytes;
-window.ktInfraBadge = ktInfraBadge;
-window.ktInfrastructureRefresh = ktInfrastructureRefresh;
-window.ktWatchdogRun = ktWatchdogRun;
-window.ktWatchdogRefresh = ktWatchdogRefresh;
-window.ktEscapeHtml = ktEscapeHtml;
-
-window.ktRoboticsCall = ktRoboticsCall;
-window.ktRobotConnect = ktRobotConnect;
-window.ktRobotDisconnect = ktRobotDisconnect;
-window.ktRefreshRobotStatus = ktRefreshRobotStatus;
-window.ktRoboticsRefresh = ktRoboticsRefresh;
-window.ktStartMission = ktStartMission;
-window.ktLoadMissions = ktLoadMissions;
-window.ktExecuteRobotCommand = ktExecuteRobotCommand;
-window.ktSendRobotSensor = ktSendRobotSensor;
-window.ktCmc = ktCmc;
-window.ktAgentRefresh = ktAgentRefresh;
-window.ktAgentInstances = ktAgentInstances;
-window.ktAgentCreateTask = ktAgentCreateTask;
-window.ktAgentApprove = ktAgentApprove;
-window.ktControlRefresh = ktControlRefresh;
-window.ktWorkspaceRefresh = ktWorkspaceRefresh;
-window.ktWorkspaceMembers = ktWorkspaceMembers;
-window.ktWorkspaceInvite = ktWorkspaceInvite;
-window.ktProjectNewForm = ktProjectNewForm;
-window.ktProjectsRender = ktProjectsRender;
-window.ktProjectCreate = ktProjectCreate;
-window.ktProjectTemplates = ktProjectTemplates;
-window.ktProjectUseTemplate = ktProjectUseTemplate;
-window.ktCmcRefresh = ktCmcRefresh;
-window.ktCmcCreateMission = ktCmcCreateMission;
-window.ktLoadOpenApi = ktLoadOpenApi;
-window.ktPickEndpoint = ktPickEndpoint;
-window.ktExecuteApiExplorer = ktExecuteApiExplorer;
-
 /* Expose handlers explicitly for later inline scripts and HTML onclicks.
    Function declarations are hoisted, so these exports are available before UI boot. */
 const KT_API_BASE = (window.KALATRACE_API_BASE || 'https://kalatrace-desenvolvimento.onrender.com').replace(/\/$/, '');
@@ -902,14 +866,6 @@ document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=
 </div>
 
 <script>
-window.ktLoadProjects = ktLoadProjects;
-window.ktSelectProject = ktSelectProject;
-window.obFade = obFade;
-window.obGoWorkspace = obGoWorkspace;
-window.obOpenProject = obOpenProject;
-window.obRunProjectChecks = obRunProjectChecks;
-window.obEnterProject = obEnterProject;
-
 /* Explicitly export this script's entry-flow functions before event wiring. */
 window.ktLoadProjects = ktLoadProjects;
 window.ktSelectProject = ktSelectProject;
@@ -1034,6 +990,34 @@ async function obEnterProject(){
   if(graphScreen){const btn=document.createElement('button');btn.className='primary';btn.textContent='Atualizar grafo real';btn.onclick=async()=>{try{const d=await window.ktApi('/neo4j/graph');const b=graphScreen.querySelector('.page-head');let m=document.getElementById('kt-graph-sync');if(!m){m=document.createElement('span');m.id='kt-graph-sync';m.className='badge success';b.querySelector('.page-title').append(' ');b.querySelector('.page-title').appendChild(m)}m.textContent='Neo4j: '+(d.nodes?.length||0)+' nós · '+(d.edges?.length||0)+' relações'}catch(e){alert('Não foi possível consultar o Neo4j: '+e.message)}};graphScreen.querySelector('.page-head')?.appendChild(btn);}
 })();
 </script><script>
+window.ktRoboticsCall = ktRoboticsCall;
+window.ktRobotConnect = ktRobotConnect;
+window.ktRobotDisconnect = ktRobotDisconnect;
+window.ktRefreshRobotStatus = ktRefreshRobotStatus;
+window.ktRoboticsRefresh = ktRoboticsRefresh;
+window.ktStartMission = ktStartMission;
+window.ktLoadMissions = ktLoadMissions;
+window.ktExecuteRobotCommand = ktExecuteRobotCommand;
+window.ktSendRobotSensor = ktSendRobotSensor;
+window.ktCmc = ktCmc;
+window.ktAgentRefresh = ktAgentRefresh;
+window.ktAgentInstances = ktAgentInstances;
+window.ktAgentCreateTask = ktAgentCreateTask;
+window.ktAgentApprove = ktAgentApprove;
+window.ktControlRefresh = ktControlRefresh;
+window.ktWorkspaceRefresh = ktWorkspaceRefresh;
+window.ktWorkspaceMembers = ktWorkspaceMembers;
+window.ktWorkspaceInvite = ktWorkspaceInvite;
+window.ktProjectNewForm = ktProjectNewForm;
+window.ktProjectsRender = ktProjectsRender;
+window.ktProjectCreate = ktProjectCreate;
+window.ktProjectTemplates = ktProjectTemplates;
+window.ktProjectUseTemplate = ktProjectUseTemplate;
+window.ktCmcRefresh = ktCmcRefresh;
+window.ktCmcCreateMission = ktCmcCreateMission;
+window.ktLoadOpenApi = ktLoadOpenApi;
+window.ktPickEndpoint = ktPickEndpoint;
+window.ktExecuteApiExplorer = ktExecuteApiExplorer;
 async function ktRoboticsCall(path,method='POST',body){return ktApi(path,{method,body:body===undefined?undefined:JSON.stringify(body)})}
 async function ktRobotConnect(){try{const r=await ktRoboticsCall('/robotics/connect','POST',{robot_id:document.getElementById('robot-id').value,endpoint:document.getElementById('robot-endpoint').value});document.getElementById('robot-status').textContent=JSON.stringify(r,null,2);await ktRefreshRobotStatus()}catch(e){document.getElementById('robot-status').textContent=e.message}}
 async function ktRobotDisconnect(){try{const r=await ktRoboticsCall('/robotics/disconnect','POST',{robot_id:document.getElementById('robot-id').value});document.getElementById('robot-status').textContent=JSON.stringify(r,null,2)}catch(e){document.getElementById('robot-status').textContent=e.message}}
@@ -1064,6 +1048,12 @@ function ktPickEndpoint(method,path){document.getElementById('api-method').value
 async function ktExecuteApiExplorer(){try{const method=document.getElementById('api-method').value,path=document.getElementById('api-path').value;const o={method};if(['POST','PATCH','PUT','DELETE'].includes(method))o.body=document.getElementById('api-body').value||'{}';document.getElementById('api-explorer-output').textContent=JSON.stringify(await ktApi(path,o),null,2)}catch(e){document.getElementById('api-explorer-output').textContent=e.message}}
 </script>
 <script>
+window.ktFormatBytes = ktFormatBytes;
+window.ktInfraBadge = ktInfraBadge;
+window.ktInfrastructureRefresh = ktInfrastructureRefresh;
+window.ktWatchdogRun = ktWatchdogRun;
+window.ktWatchdogRefresh = ktWatchdogRefresh;
+window.ktEscapeHtml = ktEscapeHtml;
 function ktFormatBytes(bytes){
   if(bytes===0)return '0 B';
   const units=['B','KB','MB','GB','TB']; const i=Math.floor(Math.log(bytes)/Math.log(1024));
