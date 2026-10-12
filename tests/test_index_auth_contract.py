@@ -65,7 +65,6 @@ def test_splash_transition_is_independent_of_auth_bootstrap():
     assert "welcome.hidden = false" in fallback
     assert "setTimeout(function(){ obFade('ob-splash','ob-welcome'); }, 2200)" not in HTML
 
-
 def test_platform_entry_button_opens_auth_without_waiting_for_api():
     assert 'id="ob-enter-platform-btn" type="button" onclick="window.ktShowLoginFromWelcome(); return false;"' in HTML
     fallback_start = HTML.index('<script id="kt-splash-fallback">')
@@ -84,12 +83,3 @@ def test_workspace_registers_login_continuation_before_auth_check():
     end = HTML.index("// 3 -> 4", start)
     flow = HTML[start:end]
     assert flow.index("window.KT_AUTH_CONTINUE=obGoWorkspace") < flow.index("ktEnsureAuth")
-
-
-
-def test_workspace_registers_login_continuation_before_auth_check():
-    start = HTML.index("async function obGoWorkspace()")
-    end = HTML.index("// 3 -> 4", start)
-    flow = HTML[start:end]
-    assert flow.index("window.KT_AUTH_CONTINUE=obGoWorkspace") < flow.index("ktEnsureAuth")
-    assert "msg.textContent='Verificando sua sessão KALATRACE…'" in flow
