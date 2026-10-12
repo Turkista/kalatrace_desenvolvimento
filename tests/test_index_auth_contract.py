@@ -33,8 +33,9 @@ def test_logout_clears_local_token_even_if_api_logout_fails():
 
 def test_auth_handlers_are_bound_after_modal_markup_exists():
     modal_position = HTML.index('<div id="kt-auth-modal"')
-    handler_position = HTML.index("document.getElementById('kt-auth-form').addEventListener")
+    handler_position = HTML.index("const authForm = document.getElementById('kt-auth-form')")
     assert handler_position > modal_position
+    assert "authForm.addEventListener('submit', window.ktLogin)" in HTML
 
 def test_workspace_requires_authentication_before_project_selection():
     start = HTML.index("async function obGoWorkspace()")
