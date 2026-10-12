@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/kalatrace_desenvolvimento/assets/asset_eb3da0044c.png" type="image/png">
 <title>KALATRACE — Arquitetura Cognitiva para Governança do Conhecimento</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
 <style>
@@ -161,6 +162,150 @@
   </div>
   <button class="ob-btn-primary" id="ob-enter-platform-btn" type="button" onclick="window.ktShowLoginFromWelcome(); return false;">Entrar na plataforma</button>
 </div>
+
+<script id="kt-auth-bootstrap-fallback">
+/* Auth safety net: keep the login operable even if the larger UI boot script fails. */
+(function () {
+  function apiBase() {
+    return String(window.KT_API_BASE || window.KALATRACE_API_BASE ||
+      'https://kalatrace-desenvolvimento.onrender.com').replace(/\/$/, '');
+  }
+  if (typeof window.ktToken !== 'function') {
+    window.ktToken = function () {
+      try { return sessionStorage.getItem('kalatrace_access_token') || ''; }
+      catch (_) { return ''; }
+    };
+  }
+  if (typeof window.ktSetAuthIdentity !== 'function') {
+    window.ktSetAuthIdentity = function (user) {
+      var email = String(user && user.email || '').trim();
+      var name = String(user && user.user_metadata &&
+        (user.user_metadata.full_name || user.user_metadata.name) || '').trim();
+      var label = document.getElementById('kt-current-user');
+      var avatar = document.getElementById('kt-user-avatar');
+      var logout = document.getElementById('kt-logout-button');
+      if (label) label.textContent = email || 'Sessão não iniciada';
+      if (avatar) avatar.textContent = (name || email || 'KT')
+        .split(/[\s@._-]+/).filter(Boolean).slice(0, 2)
+        .map(function (part) { return part.charAt(0).toUpperCase(); }).join('') || 'KT';
+      if (logout) logout.disabled = !window.ktToken();
+    };
+  }
+  if (typeof window.ktApi !== 'function') {
+    window.ktApi = async function (path, options) {
+      options = options || {};
+      var headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+      var token = window.ktToken();
+      if (token) headers.Authorization = 'Bearer ' + token;
+      var response;
+      try {
+        response = await fetch(apiBase() + path, Object.assign({}, options, { headers: headers }));
+      } catch (_) {
+        throw new Error('Não foi possível conectar à API do KALATRACE. Verifique se o serviço está ativo.');
+      }
+      var body = await response.json().catch(function () { return {}; });
+      if (!response.ok) {
+        var error = new Error(body.detail || body.message || ('HTTP ' + response.status));
+        error.status = response.status;
+        throw error;
+      }
+      return body;
+    };
+  }
+  if (typeof window.ktCloseAuth !== 'function') {
+    window.ktCloseAuth = function () {
+      var modal = document.getElementById('kt-auth-modal');
+      if (modal) { modal.style.display = 'none'; modal.hidden = true; }
+    };
+  }
+  if (typeof window.ktOpenAuth !== 'function') {
+    window.ktOpenAuth = function (message) {
+      var modal = document.getElementById('kt-auth-modal');
+      var msg = document.getElementById('kt-auth-msg');
+      if (!modal) return;
+      modal.hidden = false;
+      modal.style.setProperty('display', 'flex', 'important');
+      modal.style.setProperty('z-index', '2147483647', 'important');
+      if (msg) {
+        msg.textContent = message || 'Entre com sua conta KALATRACE para continuar.';
+        msg.style.color = message ? 'var(--danger)' : 'var(--text-secondary)';
+      }
+      var email = document.getElementById('kt-auth-email');
+      var password = document.getElementById('kt-auth-password');
+      if (email && password) (email.value.trim() ? password : email).focus();
+    };
+  }
+  if (typeof window.ktTogglePassword !== 'function') {
+    window.ktTogglePassword = function () {
+      var input = document.getElementById('kt-auth-password');
+      var button = document.getElementById('kt-auth-toggle-password');
+      if (!input || !button) return;
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      button.textContent = show ? 'Ocultar' : 'Mostrar';
+      button.setAttribute('aria-pressed', String(show));
+    };
+  }
+  if (typeof window.ktEnsureAuth !== 'function') {
+    window.ktEnsureAuth = async function () {
+      if (!window.ktToken()) {
+        window.ktOpenAuth();
+        return false;
+      }
+      try {
+        await window.ktApi('/auth/me');
+        return true;
+      } catch (_) {
+        try { sessionStorage.removeItem('kalatrace_access_token'); } catch (_) {}
+        window.ktSetAuthIdentity(null);
+        window.ktOpenAuth('Sua sessão expirou. Entre novamente com sua conta.');
+        return false;
+      }
+    };
+  }
+  if (typeof window.ktLogin !== 'function') {
+    window.ktLogin = async function (event) {
+      if (event) event.preventDefault();
+      var form = document.getElementById('kt-auth-form');
+      if (form && !form.reportValidity()) return;
+      var email = document.getElementById('kt-auth-email');
+      var password = document.getElementById('kt-auth-password');
+      var submit = document.getElementById('kt-auth-submit');
+      var msg = document.getElementById('kt-auth-msg');
+      if (!email || !password || !submit || !msg || submit.disabled) return;
+      submit.disabled = true;
+      msg.style.color = 'var(--text-secondary)';
+      msg.textContent = 'Autenticando…';
+      try {
+        var data = await window.ktApi('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: email.value.trim(), password: password.value })
+        });
+        var token = data.access_token || (data.session && data.session.access_token);
+        if (!token) throw new Error('A API não retornou um token de acesso.');
+        sessionStorage.setItem('kalatrace_access_token', token);
+        var user = await window.ktApi('/auth/me');
+        window.ktSetAuthIdentity(user);
+        window.ktCloseAuth();
+        if (typeof window.ktRefreshBackendStatus === 'function') {
+          try { await window.ktRefreshBackendStatus(); } catch (_) {}
+        }
+        var resume = window.KT_AUTH_CONTINUE;
+        window.KT_AUTH_CONTINUE = null;
+        if (typeof resume === 'function') await resume();
+        else if (typeof window.obEnterProject === 'function') await window.obEnterProject();
+      } catch (error) {
+        msg.textContent = error && (error.status === 400 || error.status === 401)
+          ? 'Não foi possível entrar. Confira o e-mail, a senha e se o e-mail da conta está confirmado.'
+          : (error.message || 'Ocorreu um erro durante a autenticação.');
+        msg.style.color = 'var(--danger)';
+      } finally {
+        submit.disabled = false;
+      }
+    };
+  }
+})();
+</script>
 
 <script id="kt-splash-fallback">
 /* Keep the initial screen independent of API/auth bootstrapping. */
