@@ -50,3 +50,17 @@ def test_api_base_defaults_to_deployed_render_service_and_allows_override():
     assert "window.KALATRACE_API_BASE || 'https://kalatrace-desenvolvimento.onrender.com'" in HTML
     assert "window.KALATRACE_API_BASE || 'http://127.0.0.1:8000'" not in HTML
     assert "fetch(KT_API_BASE+path" in HTML
+
+
+def test_splash_transition_is_independent_of_auth_bootstrap():
+    fallback_start = HTML.index('<script id="kt-splash-fallback">')
+    workspace_start = HTML.index("<!-- 3. WORKSPACE -->")
+    app_bootstrap_start = HTML.index("const forms=[")
+    auth_binding_start = HTML.index("document.getElementById('kt-auth-form').addEventListener")
+
+    fallback = HTML[fallback_start:workspace_start]
+    assert fallback_start < workspace_start < app_bootstrap_start < auth_binding_start
+    assert "window.setTimeout(function ()" in fallback
+    assert "splash.hidden = true" in fallback
+    assert "welcome.hidden = false" in fallback
+    assert "setTimeout(function(){ obFade('ob-splash','ob-welcome'); }, 2200)" not in HTML
