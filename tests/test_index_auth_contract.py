@@ -5,7 +5,7 @@ HTML = INDEX.read_text(encoding="utf-8")
 
 
 def test_login_form_has_accessible_required_credentials():
-    assert '<div id="kt-auth-modal" role="dialog" aria-modal="true"' in HTML
+    assert '<dialog id="kt-auth-modal" aria-modal="true"' in HTML
     assert '<form id="kt-auth-form">' in HTML
     assert 'id="kt-auth-email" name="email" type="email"' in HTML
     assert 'id="kt-auth-password" name="password" type="password"' in HTML
@@ -32,7 +32,7 @@ def test_logout_clears_local_token_even_if_api_logout_fails():
     assert "document.getElementById('app-root').style.display='none'" in logout
 
 def test_auth_handlers_are_bound_after_modal_markup_exists():
-    modal_position = HTML.index('<div id="kt-auth-modal"')
+    modal_position = HTML.index('<dialog id="kt-auth-modal"')
     handler_position = HTML.index("const authForm = document.getElementById('kt-auth-form')")
     assert handler_position > modal_position
     assert "authForm.addEventListener('submit', window.ktLogin)" in HTML
@@ -162,8 +162,11 @@ def test_primary_auth_modal_is_forced_visible_above_onboarding():
     end = HTML.index("async function ktLogin", start)
     opener = HTML[start:end]
     assert "modal.hidden=false;" in opener
-    assert "modal.style.setProperty('display','flex','important')" in opener
-    assert "modal.style.setProperty('z-index','2147483647','important')" in opener
-    assert "modal.style.setProperty('display','none','important')" in opener
+    assert "modal.showModal()" in opener
+    assert "modal.open" in opener
+    assert "modal.close()" in opener
     assert "modal.hidden=true;" in opener
+    assert 'dialog id="kt-auth-modal"' in HTML
+    assert '#kt-auth-modal[open]{display:flex!important}' in HTML
+    assert "(modal.open || modal.hasAttribute('open'))" in HTML
     assert "window.getComputedStyle(modal).display !== 'none'" in HTML
