@@ -118,7 +118,20 @@
 #kt-auth-modal .box{width:min(420px,92vw);background:#fff;border:1px solid var(--border);border-radius:14px;padding:22px;box-shadow:0 20px 60px #0002}
 #kt-auth-modal h3{margin:0 0 6px;color:var(--navy)}#kt-auth-modal p{font-size:12px;color:var(--text-secondary)}
 #kt-auth-modal label{display:block;font-size:11px;color:var(--text-secondary);margin:10px 0 5px}
-#kt-auth-modal input{background:#fff}#kt-auth-msg{font-size:11px;margin-top:9px;min-height:16px}
+#kt-auth-modal .box{max-height:calc(100dvh - 32px);overflow:auto}
+#kt-auth-modal input{background:#fff}
+#kt-auth-form{display:grid;gap:2px}
+#kt-auth-modal label{font-weight:600}
+#kt-auth-password-wrap{display:flex;gap:7px;align-items:stretch}
+#kt-auth-password-wrap input{flex:1;min-width:0}
+#kt-auth-toggle-password{white-space:nowrap;padding-inline:10px}
+#kt-auth-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+#kt-auth-msg{font-size:12px;margin-top:10px;min-height:18px;line-height:1.45}
+#kt-auth-msg[aria-live]{overflow-wrap:anywhere}
+#kt-auth-submit:disabled,#kt-logout-button:disabled{opacity:.6;cursor:wait}
+.kt-current-user{font-size:11px;color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#kt-logout-button{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;font-size:11px}
+@media(max-width:680px){.kt-current-user{display:none}#kt-logout-button{padding:6px 7px}}
 .kt-api-status{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-secondary);margin-right:14px}
 .kt-api-dot{width:7px;height:7px;border-radius:50%;background:var(--warning)}
 .kt-api-dot.ok{background:var(--success)}.kt-api-dot.bad{background:var(--danger)}
@@ -245,7 +258,7 @@
   <main class="main">
     <header class="topbar">
       <div class="ctx"><button class="mobile-menu" id="menuBtn"><i class="ti ti-menu-2"></i></button><span class="muted">Projeto</span><span class="val" id="active-project-name">MEDIKALAT</span><i class="ti ti-chevron-down"></i><span class="muted domain" style="margin-left:8px">Domínio</span><span class="val domain" id="active-project-domain">Biomedicina</span></div>
-      <div class="icons"><i class="ti ti-search"></i><i class="ti ti-bell"></i><div class="avatar">DM</div></div>
+      <div class="icons"><i class="ti ti-search" aria-hidden="true"></i><i class="ti ti-bell" aria-hidden="true"></i><span id="kt-current-user" class="kt-current-user">Sessão autenticada</span><div class="avatar" id="kt-user-avatar" aria-label="Usuário autenticado">KT</div><button id="kt-logout-button" type="button" onclick="ktLogout()" title="Encerrar sessão" aria-label="Encerrar sessão"><i class="ti ti-logout" aria-hidden="true"></i><span>Sair</span></button></div>
     </header>
     <div class="content">
 
@@ -602,30 +615,132 @@ const formTabs=document.getElementById('formTabs'),formPanels=document.getElemen
 function showPanel(id){document.querySelectorAll('#formTabs button').forEach(b=>b.classList.toggle('active',b.dataset.id===id));document.querySelectorAll('#formPanels .panel').forEach(p=>p.classList.remove('active'));document.getElementById('readingPanel').style.display=id==='reading'?'block':'none';if(id!=='reading')document.getElementById('panel-'+id).classList.add('active');}
 const KT_API_BASE = (window.KALATRACE_API_BASE || 'http://127.0.0.1:8000').replace(/\/$/, '');
 function ktToken(){return sessionStorage.getItem('kalatrace_access_token')||''}
+function ktSetAuthIdentity(user){
+  const email=String(user?.email||'').trim();
+  const name=String(user?.user_metadata?.full_name||user?.user_metadata?.name||'').trim();
+  const label=document.getElementById('kt-current-user');
+  const avatar=document.getElementById('kt-user-avatar');
+  const logout=document.getElementById('kt-logout-button');
+  if(label)label.textContent=email||'Sessão não iniciada';
+  if(avatar)avatar.textContent=(name||email||'KT').split(/[\s@._-]+/).filter(Boolean).slice(0,2).map(x=>x[0].toUpperCase()).join('')||'KT';
+  if(logout)logout.disabled=!ktToken();
+}
 async function ktApi(path, options={}){
   const headers=Object.assign({'Content-Type':'application/json'},options.headers||{});
   const token=ktToken(); if(token) headers.Authorization='Bearer '+token;
-  const res=await fetch(KT_API_BASE+path,{...options,headers});
+  let res;
+  try{
+    res=await fetch(KT_API_BASE+path,{...options,headers});
+  }catch(e){
+    throw new Error('Não foi possível conectar à API do KALATRACE. Confira se a API FastAPI está ativa e se window.KALATRACE_API_BASE aponta para o endereço correto.');
+  }
   const body=await res.json().catch(()=>({}));
-  if(!res.ok) throw new Error(body.detail||body.message||('HTTP '+res.status));
+  if(!res.ok){
+    const error=new Error(body.detail||body.message||('HTTP '+res.status));
+    error.status=res.status;
+    throw error;
+  }
   return body;
 }
-function ktOpenAuth(message=''){const modal=document.getElementById('kt-auth-modal');modal.style.display='flex';document.getElementById('kt-auth-msg').textContent=message;document.getElementById('kt-auth-email').focus()}
+function ktOpenAuth(message=''){
+  const modal=document.getElementById('kt-auth-modal');
+  const msg=document.getElementById('kt-auth-msg');
+  modal.style.display='flex';
+  msg.textContent=message;
+  msg.style.color=message?'var(--danger)':'var(--text-secondary)';
+  const email=document.getElementById('kt-auth-email');
+  const password=document.getElementById('kt-auth-password');
+  (email.value.trim()?password:email).focus();
+}
 function ktCloseAuth(){document.getElementById('kt-auth-modal').style.display='none'}
-async function ktLogin(){
-  const msg=document.getElementById('kt-auth-msg');msg.textContent='Autenticando...';
-  try{const data=await ktApi('/auth/login',{method:'POST',body:JSON.stringify({email:document.getElementById('kt-auth-email').value,password:document.getElementById('kt-auth-password').value})});
-    const token=data.access_token||data.session?.access_token;if(!token)throw new Error('A API não retornou access token.');
+async function ktLogin(event){
+  if(event)event.preventDefault();
+  const form=document.getElementById('kt-auth-form');
+  if(form&&!form.reportValidity())return;
+  const emailInput=document.getElementById('kt-auth-email');
+  const passwordInput=document.getElementById('kt-auth-password');
+  const submit=document.getElementById('kt-auth-submit');
+  const msg=document.getElementById('kt-auth-msg');
+  if(submit.disabled)return;
+  submit.disabled=true;
+  msg.style.color='var(--text-secondary)';
+  msg.textContent='Autenticando…';
+  try{
+    const data=await ktApi('/auth/login',{method:'POST',body:JSON.stringify({email:emailInput.value.trim(),password:passwordInput.value})});
+    const token=data.access_token||data.session?.access_token;
+    if(!token)throw new Error('A API não retornou um token de acesso. Verifique a configuração do endpoint de autenticação.');
     sessionStorage.setItem('kalatrace_access_token',token);
+    const user=await ktApi('/auth/me');
+    ktSetAuthIdentity(user);
     ktCloseAuth();
     await ktRefreshBackendStatus();
-    // Retoma a ação que abriu o modal de autenticação: entrar no projeto.
-    // obEnterProject() valida novamente o token via /auth/me antes de abrir a aplicação.
-    await obEnterProject();
-  }catch(e){msg.textContent=e.message;msg.style.color='var(--danger)'}
+    // Retoma o passo que solicitou autenticação; se não houver um, abre o projeto padrão.
+    const resume=window.KT_AUTH_CONTINUE;
+    window.KT_AUTH_CONTINUE=null;
+    if(typeof resume==='function')await resume();
+    else await obEnterProject();
+  }catch(e){
+    if(e.status===400||e.status===401){
+      msg.textContent='Não foi possível entrar. Confira o e-mail, a senha e se o e-mail da conta está confirmado.';
+    }else if(e.status===403){
+      msg.textContent='Esta conta não está autorizada a acessar o KALATRACE.';
+    }else{
+      msg.textContent=e.message||'Ocorreu um erro durante a autenticação.';
+    }
+    msg.style.color='var(--danger)';
+    if(e.status===401||e.status===403){
+      sessionStorage.removeItem('kalatrace_access_token');
+      ktSetAuthIdentity(null);
+    }
+  }finally{
+    submit.disabled=false;
+  }
 }
-document.getElementById('kt-auth-submit').onclick=ktLogin;document.getElementById('kt-auth-cancel').onclick=ktCloseAuth;
-async function ktEnsureAuth(){if(ktToken()){try{await ktApi('/auth/me');return true}catch(e){sessionStorage.removeItem('kalatrace_access_token')}}ktOpenAuth();return false}
+function ktTogglePassword(){
+  const input=document.getElementById('kt-auth-password');
+  const button=document.getElementById('kt-auth-toggle-password');
+  const visible=input.type==='password';
+  input.type=visible?'text':'password';
+  button.textContent=visible?'Ocultar':'Mostrar';
+  button.setAttribute('aria-label',visible?'Ocultar senha':'Mostrar senha');
+  button.setAttribute('aria-pressed',String(visible));
+}
+async function ktEnsureAuth(){
+  if(ktToken()){
+    try{
+      const user=await ktApi('/auth/me');
+      ktSetAuthIdentity(user);
+      return true;
+    }catch(e){
+      sessionStorage.removeItem('kalatrace_access_token');
+      ktSetAuthIdentity(null);
+    }
+  }
+  ktOpenAuth('Sua sessão não está ativa. Entre com sua conta KALATRACE.');
+  return false;
+}
+async function ktLogout(){
+  const button=document.getElementById('kt-logout-button');
+  if(button)button.disabled=true;
+  try{
+    if(ktToken())await ktApi('/auth/logout',{method:'POST'});
+  }catch(e){
+    // A sessão local é removida mesmo quando a API não responde.
+  }finally{
+    sessionStorage.removeItem('kalatrace_access_token');
+    ktSetAuthIdentity(null);
+    document.getElementById('app-root').style.display='none';
+    ['ob-splash','ob-workspace','ob-projload'].forEach(id=>{const el=document.getElementById(id);if(el)el.hidden=true});
+    const welcome=document.getElementById('ob-welcome');
+    welcome.hidden=false;
+    welcome.classList.remove('hide');
+    document.getElementById('kt-auth-email').value='';
+    document.getElementById('kt-auth-password').value='';
+    document.getElementById('kt-auth-msg').textContent='Sessão encerrada neste navegador.';
+    document.getElementById('kt-auth-msg').style.color='var(--success)';
+    if(button)button.disabled=false;
+  }
+}
 function ktFormData(card){const data={};card.querySelectorAll('.field').forEach(field=>{const label=field.querySelector('label')?.textContent?.trim();if(!label)return;const controls=field.querySelectorAll('input,select,textarea');if(controls.length===1)data[label]=controls[0].value;else if(controls.length>1)data[label]=Array.from(controls).map(x=>x.value)});return data}
 async function saveDemo(btn){
   const card=btn.closest('.form-card');const msg=card.querySelector('.msg');const panel=card.closest('.panel');const formId=panel?.id?.replace(/^panel-/,'')||'unknown';
@@ -647,17 +762,31 @@ function clearForm(btn){btn.closest('.form-card').querySelectorAll('input,select
 function showScreen(id){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');document.querySelector('.content').scrollTop=0;document.getElementById('sidebar').classList.remove('open');if(id==='infraestrutura'){ktInfrastructureRefresh();ktWatchdogRefresh()}}
 document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>showScreen(n.dataset.screen)));document.getElementById('menuBtn').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
 </script>
-<div id="kt-auth-modal">
+<div id="kt-auth-modal" role="dialog" aria-modal="true" aria-labelledby="kt-auth-title">
   <div class="box">
-    <h3>Entrar no KALATRACE</h3>
-    <p>A interface agora usa a API real e a persistência protegida pelo Supabase Auth.</p>
-    <label>E-mail</label><input id="kt-auth-email" type="email" autocomplete="username">
-    <label>Senha</label><input id="kt-auth-password" type="password" autocomplete="current-password">
-    <div style="display:flex;gap:8px;margin-top:14px"><button class="primary" id="kt-auth-submit">Entrar</button><button id="kt-auth-cancel">Cancelar</button></div>
-    <div id="kt-auth-msg"></div>
+    <h3 id="kt-auth-title">Entrar no KALATRACE</h3>
+    <p>Acesse com sua conta existente. A autenticação é validada pelo Supabase Auth através da API do KALATRACE.</p>
+    <form id="kt-auth-form">
+      <label for="kt-auth-email">E-mail</label>
+      <input id="kt-auth-email" name="email" type="email" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false" required>
+      <label for="kt-auth-password">Senha</label>
+      <div id="kt-auth-password-wrap">
+        <input id="kt-auth-password" name="password" type="password" autocomplete="current-password" required>
+        <button id="kt-auth-toggle-password" type="button" aria-label="Mostrar senha" aria-pressed="false">Mostrar</button>
+      </div>
+      <div id="kt-auth-actions">
+        <button class="primary" id="kt-auth-submit" type="submit">Entrar</button>
+        <button id="kt-auth-cancel" type="button">Cancelar</button>
+      </div>
+      <div id="kt-auth-msg" role="status" aria-live="polite"></div>
+    </form>
   </div>
 </div>
 <script>
+document.getElementById('kt-auth-form').addEventListener('submit',ktLogin);
+document.getElementById('kt-auth-cancel').onclick=ktCloseAuth;
+document.getElementById('kt-auth-toggle-password').onclick=ktTogglePassword;
+window.KT_AUTH_CONTINUE=null;
 window.KT_PROJECTS=[];window.KT_ACTIVE_PROJECT='medikalat';window.KT_ACTIVE_PROJECT_ID=null;window.KT_ACTIVE_PROJECT_META={};
 async function ktLoadProjects(){try{const d=await ktApi('/projects');window.KT_PROJECTS=d.projects||[];return window.KT_PROJECTS}catch(e){return []}}
 function ktSelectProject(slug){const p=window.KT_PROJECTS.find(x=>x.slug===slug)||{slug:slug,name:slug,domain:'KALATRACE'};window.KT_ACTIVE_PROJECT=p.slug;window.KT_ACTIVE_PROJECT_ID=p.id||null;window.KT_ACTIVE_PROJECT_META=p;const n=document.getElementById('active-project-name');if(n)n.textContent=p.name;const d=document.getElementById('active-project-domain');if(d)d.textContent=p.domain||'KALATRACE';document.querySelectorAll('.project-only').forEach(x=>x.style.display='none');if(p.slug==='robotica')document.querySelectorAll('.project-robotica').forEach(x=>x.style.display='flex');if(p.slug==='agente-local')document.querySelectorAll('.project-agent').forEach(x=>x.style.display='flex');const med=document.querySelector('[data-screen="medikalat"]');if(med)med.style.display=p.slug==='medikalat'?'flex':'none';if(p.slug==='robotica')showScreen('robotica');else if(p.slug==='agente-local')showScreen('agente-local');else showScreen('hub');}
@@ -674,8 +803,14 @@ function obFade(hideId, showId, cb){
 // 1 -> 2 : splash auto-advances
 setTimeout(function(){ obFade('ob-splash','ob-welcome'); }, 2200);
 
-// 2 -> 3
-function obGoWorkspace(){ obFade('ob-welcome','ob-workspace'); }
+// 2 -> 3 — autenticação antes de exibir os ambientes do workspace.
+async function obGoWorkspace(){
+  if(!(await ktEnsureAuth())){
+    window.KT_AUTH_CONTINUE=obGoWorkspace;
+    return;
+  }
+  obFade('ob-welcome','ob-workspace');
+}
 
 // 3 -> 4
 function obOpenProject(name){
@@ -710,7 +845,10 @@ function obRunProjectChecks(){
 
 // 4 -> app
 async function obEnterProject(){
-  if(!(await ktEnsureAuth())) return;
+  if(!(await ktEnsureAuth())){
+    window.KT_AUTH_CONTINUE=obEnterProject;
+    return;
+  }
   await ktLoadProjects();
   ktSelectProject(window.KT_SELECTED_PROJECT||'medikalat');
   document.getElementById('ob-projload').classList.add('hide');
@@ -724,7 +862,18 @@ async function obEnterProject(){
 </script>
 <script>
 (async function(){
-  if(ktToken()){await ktLoadProjects();await ktRefreshBackendStatus();}
+  ktSetAuthIdentity(null);
+  if(ktToken()){
+    try{
+      const user=await ktApi('/auth/me');
+      ktSetAuthIdentity(user);
+      await ktLoadProjects();
+      await ktRefreshBackendStatus();
+    }catch(e){
+      sessionStorage.removeItem('kalatrace_access_token');
+      ktSetAuthIdentity(null);
+    }
+  }
   const graphScreen=document.getElementById('screen-grafo');
   if(graphScreen){const btn=document.createElement('button');btn.className='primary';btn.textContent='Atualizar grafo real';btn.onclick=async()=>{try{const d=await ktApi('/neo4j/graph');const b=graphScreen.querySelector('.page-head');let m=document.getElementById('kt-graph-sync');if(!m){m=document.createElement('span');m.id='kt-graph-sync';m.className='badge success';b.querySelector('.page-title').append(' ');b.querySelector('.page-title').appendChild(m)}m.textContent='Neo4j: '+(d.nodes?.length||0)+' nós · '+(d.edges?.length||0)+' relações'}catch(e){alert('Não foi possível consultar o Neo4j: '+e.message)}};graphScreen.querySelector('.page-head')?.appendChild(btn);}
 })();
