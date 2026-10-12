@@ -157,3 +157,13 @@ def test_enter_project_awaits_auth_then_reveals_kalatrace_app():
     assert "app.style.display=''" in flow
     assert "return true;" in flow
 
+def test_primary_auth_modal_is_forced_visible_above_onboarding():
+    start = HTML.index("function ktOpenAuth(message='')")
+    end = HTML.index("async function ktLogin", start)
+    opener = HTML[start:end]
+    assert "modal.hidden=false;" in opener
+    assert "modal.style.setProperty('display','flex','important')" in opener
+    assert "modal.style.setProperty('z-index','2147483647','important')" in opener
+    assert "modal.style.setProperty('display','none','important')" in opener
+    assert "modal.hidden=true;" in opener
+    assert "window.getComputedStyle(modal).display !== 'none'" in HTML
