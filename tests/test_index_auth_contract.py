@@ -35,3 +35,12 @@ def test_auth_handlers_are_bound_after_modal_markup_exists():
     modal_position = HTML.index('<div id="kt-auth-modal"')
     handler_position = HTML.index("document.getElementById('kt-auth-form').addEventListener")
     assert handler_position > modal_position
+
+def test_workspace_requires_authentication_before_project_selection():
+    start = HTML.index("async function obGoWorkspace()")
+    end = HTML.index("// 3 -> 4", start)
+    workspace_flow = HTML[start:end]
+    assert "if(!(await ktEnsureAuth()))" in workspace_flow
+    assert "window.KT_AUTH_CONTINUE=obGoWorkspace" in workspace_flow
+    assert workspace_flow.index("ktEnsureAuth") < workspace_flow.index("obFade")
+    assert "const resume=window.KT_AUTH_CONTINUE" in HTML
