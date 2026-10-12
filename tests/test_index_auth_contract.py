@@ -1,16 +1,28 @@
 from pathlib import Path
 
-INDEX = Path(__file__).resolve().parents[1] / "index.html"
+ROOT = Path(__file__).resolve().parents[1]
+INDEX = ROOT / "index.html"
 HTML = INDEX.read_text(encoding="utf-8")
+LOGIN = ROOT / "login.html"
+LOGIN_HTML = LOGIN.read_text(encoding="utf-8")
 
 
-def test_login_form_has_accessible_required_credentials():
-    assert '<dialog id="kt-auth-modal" aria-modal="true"' in HTML
-    assert '<form id="kt-auth-form">' in HTML
-    assert 'id="kt-auth-email" name="email" type="email"' in HTML
-    assert 'id="kt-auth-password" name="password" type="password"' in HTML
-    assert HTML.count("required>") >= 2
-    assert 'id="kt-auth-msg" role="status" aria-live="polite"' in HTML
+def test_dedicated_login_page_has_accessible_required_credentials():
+    assert '<form id="login-form">' in LOGIN_HTML
+    assert 'id="login-email" name="email" type="email"' in LOGIN_HTML
+    assert 'id="login-password" name="password" type="password"' in LOGIN_HTML
+    assert 'id="login-status" class="status" role="status" aria-live="polite"' in LOGIN_HTML
+    assert LOGIN_HTML.count("required>") >= 2
+    assert 'id="submit-login" type="submit">Entrar no projeto</button>' in LOGIN_HTML
+
+
+def test_dedicated_login_uses_auth_api_and_resumes_selected_project():
+    assert "api('/auth/login'" in LOGIN_HTML
+    assert "await api('/auth/me')" in LOGIN_HTML
+    assert "sessionStorage.setItem('kalatrace_access_token',token)" in LOGIN_HTML
+    assert "nextUrl.searchParams.set('enterProject',project)" in LOGIN_HTML
+    assert "'https://kalatrace-desenvolvimento.onrender.com'" in LOGIN_HTML
+    assert "service_role" not in LOGIN_HTML.lower()
 
 
 def test_login_uses_existing_auth_api_and_tab_scoped_token():
@@ -44,9 +56,11 @@ def test_project_selection_precedes_authentication_and_entering_project_is_guard
     start = HTML.index("async function obEnterProject()")
     end = HTML.index("</script>", start)
     entry_flow = HTML[start:end]
-    assert "if(!(await ktEnsureAuth()))" in entry_flow
-    assert "window.KT_AUTH_CONTINUE=obEnterProject" in entry_flow
-    assert entry_flow.index("ktEnsureAuth") < entry_flow.index("await ktLoadProjects()")
+    assert "if(!authenticated)" in entry_flow
+    assert "return obRedirectToLogin(selected);" in entry_flow
+    assert "await window.ktApi('/auth/me')" in entry_flow
+    assert entry_flow.index("if(!authenticated)") < entry_flow.index("await ktLoadProjects()")
+    assert "loginUrl.searchParams.set('continue',project)" in HTML
     assert "const resume=window.KT_AUTH_CONTINUE" in HTML
 
 
@@ -67,6 +81,7 @@ def test_splash_transition_is_independent_of_auth_bootstrap():
     assert "window.setTimeout(function ()" in fallback
     assert "splash.hidden = true" in fallback
     assert "welcome.hidden = false" in fallback
+    assert "if (window.KT_SKIP_SPLASH) return;" in fallback
     assert "setTimeout(function(){ obFade('ob-splash','ob-welcome'); }, 2200)" not in HTML
 
 def test_platform_entry_button_opens_project_selector_without_auth_or_inline_global_handler():
@@ -151,11 +166,14 @@ def test_enter_project_awaits_auth_then_reveals_kalatrace_app():
     end = HTML.index("</script>", start)
     flow = HTML[start:end]
     assert flow.index("window.KT_AUTH_CONTINUE=obEnterProject") < flow.index("ktEnsureAuth")
-    assert "if(!(await ktEnsureAuth())) return false;" in flow
-    assert "ktSelectProject(window.KT_SELECTED_PROJECT||'medikalat')" in flow
+    assert "if(!authenticated)" in flow
+    assert "return obRedirectToLogin(selected);" in flow
+    assert "ktSelectProject(selected)" in flow
     assert "await new Promise(resolve=>window.setTimeout(resolve,480))" in flow
     assert "app.style.display=''" in flow
     assert "return true;" in flow
+    assert "window.KT_SKIP_SPLASH=true;" in HTML
+    assert "const result=await window.obEnterProject();" in HTML
 
 def test_primary_auth_modal_is_forced_visible_above_onboarding():
     start = HTML.index("function ktOpenAuth(message='')")
@@ -170,3 +188,20 @@ def test_primary_auth_modal_is_forced_visible_above_onboarding():
     assert '#kt-auth-modal[open]{display:flex!important}' in HTML
     assert "(modal.open || modal.hasAttribute('open'))" in HTML
     assert "window.getComputedStyle(modal).display !== 'none'" in HTML
+
+def test_enter_project_uses_standalone_login_instead_of_modal_prompt():
+    start = HTML.index("function obRedirectToLogin(projectSlug)")
+    end = HTML.index("// 4 -> app", start)
+    redirect = HTML[start:end]
+    assert "new URL('login.html',window.location.href)" in redirect
+    assert "window.location.assign(loginUrl.href)" in redirect
+    assert "return 'login-redirecting'" in redirect
+    assert "Abrindo tela de login…" in HTML
+    assert "Entre com sua conta KALATRACE na janela de autenticação para continuar." not in HTML
+
+
+def test_login_page_uses_same_origin_session_and_continue_flag():
+    assert "window.location.replace(nextUrl.href)" in LOGIN_HTML
+    assert "new URL('index.html',window.location.href)" in LOGIN_HTML
+    assert "params.get('continue')" in LOGIN_HTML
+    assert "enterProject" in LOGIN_HTML
