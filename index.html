@@ -410,7 +410,8 @@ window.setTimeout(function () {
       <div class="ob-check" data-step="2"><div class="st"></div>Verificando governanca e permissoes</div>
       <div class="ob-check" data-step="3"><div class="st"></div>Conectando ao motor cognitivo</div>
     </div>
-    <button class="ob-btn-primary" id="ob-enter-btn" disabled onclick="obEnterProject()">Entrar no projeto</button>
+    <button class="ob-btn-primary" id="ob-enter-btn" type="button" disabled>Entrar no projeto</button>
+    <p id="ob-project-entry-status" role="status" aria-live="polite" hidden style="margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--danger)"></p>
   </div>
 </div>
 
@@ -1009,6 +1010,61 @@ window.obOpenProject = obOpenProject;
 window.obRunProjectChecks = obRunProjectChecks;
 window.obEnterProject = obEnterProject;
 
+/* Explicit project-entry click binding; report failures in the page, not only in DevTools. */
+(function bindProjectEntryButton(){
+  const button = document.getElementById('ob-enter-btn');
+  const status = document.getElementById('ob-project-entry-status');
+  if (!button || button.dataset.entryBound === 'true') return;
+  button.dataset.entryBound = 'true';
+  button.addEventListener('click', async function(event){
+    event.preventDefault();
+    if (button.disabled) return;
+    button.disabled = true;
+    button.textContent = 'Abrindo ambiente…';
+    if (status) { status.hidden = true; status.textContent = ''; }
+    try {
+      if (typeof window.obEnterProject !== 'function') {
+        throw new Error('A função de entrada do projeto não foi inicializada. Atualize a página e tente novamente.');
+      }
+      const opened = await window.obEnterProject();
+      const app = document.getElementById('app-root');
+      const modal = document.getElementById('kt-auth-modal');
+      const appVisible = !!app && app.style.display !== 'none';
+      const authVisible = !!modal && !modal.hidden && modal.style.display !== 'none';
+      if (opened === true || appVisible) {
+        button.textContent = 'Ambiente aberto';
+        if (status) { status.hidden = true; status.textContent = ''; }
+        return;
+      }
+      button.disabled = false;
+      button.textContent = 'Entrar no projeto';
+      if (status) {
+        status.textContent = authVisible
+          ? 'Entre com sua conta KALATRACE na janela de autenticação para continuar.'
+          : 'A entrada foi acionada, mas o ambiente não abriu. Confira a mensagem exibida aqui e tente novamente.';
+        status.hidden = false;
+      }
+      if (authVisible) {
+        modal.style.setProperty('position', 'fixed', 'important');
+        modal.style.setProperty('inset', '0', 'important');
+        modal.style.setProperty('z-index', '2147483647', 'important');
+      } else {
+        console.error('[KALATRACE] A entrada do projeto terminou sem abrir o ambiente nem o formulário de autenticação.');
+      }
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = 'Tentar entrar novamente';
+      if (status) {
+        status.textContent = error && error.message
+          ? error.message
+          : 'Não foi possível abrir o projeto. Tente novamente.';
+        status.hidden = false;
+      }
+      console.error('[KALATRACE] Falha ao abrir o projeto selecionado.', error);
+    }
+  });
+})();
+
 const authForm = document.getElementById('kt-auth-form');
 const authCancel = document.getElementById('kt-auth-cancel');
 const authToggle = document.getElementById('kt-auth-toggle-password');
@@ -1072,21 +1128,27 @@ function obRunProjectChecks(){
   step();
 }
 
-// 4 -> app
+// 4 -> app — auth first, then enter the selected KALATRACE environment.
 async function obEnterProject(){
-  if(!(await ktEnsureAuth())){
-    window.KT_AUTH_CONTINUE=obEnterProject;
-    return;
-  }
+  // Register the continuation before checking authentication so a successful login resumes this exact action.
+  window.KT_AUTH_CONTINUE=obEnterProject;
+  if(!(await ktEnsureAuth())) return false;
+  window.KT_AUTH_CONTINUE=null;
+
   await ktLoadProjects();
   ktSelectProject(window.KT_SELECTED_PROJECT||'medikalat');
-  document.getElementById('ob-projload').classList.add('hide');
-  setTimeout(function(){
-    document.getElementById('ob-projload').hidden = true;
-    document.getElementById('app-root').style.display = '';
-    ktRefreshBackendStatus();
-    ktLoadResearchForms();
-  }, 480);
+
+  const loader=document.getElementById('ob-projload');
+  const app=document.getElementById('app-root');
+  if(!loader || !app) throw new Error('A tela de carregamento ou o ambiente KALATRACE não foi encontrado.');
+  loader.classList.add('hide');
+  await new Promise(resolve=>window.setTimeout(resolve,480));
+  loader.hidden=true;
+  loader.classList.remove('hide');
+  app.style.display='';
+  if(typeof ktRefreshBackendStatus==='function') Promise.resolve(ktRefreshBackendStatus()).catch(e=>console.error('[KALATRACE] Falha ao atualizar o estado da API.',e));
+  if(typeof ktLoadResearchForms==='function') Promise.resolve(ktLoadResearchForms()).catch(e=>console.error('[KALATRACE] Falha ao carregar os formulários.',e));
+  return true;
 }
 </script>
 <script>
