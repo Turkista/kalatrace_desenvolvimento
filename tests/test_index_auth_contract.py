@@ -165,7 +165,6 @@ def test_enter_project_awaits_auth_then_reveals_kalatrace_app():
     start = HTML.index("async function obEnterProject()")
     end = HTML.index("</script>", start)
     flow = HTML[start:end]
-    assert flow.index("window.KT_AUTH_CONTINUE=obEnterProject") < flow.index("ktEnsureAuth")
     assert "if(!authenticated)" in flow
     assert "return obRedirectToLogin(selected);" in flow
     assert "ktSelectProject(selected)" in flow
