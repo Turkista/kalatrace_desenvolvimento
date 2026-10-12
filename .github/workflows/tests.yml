@@ -73,4 +73,4 @@ jobs:
           done
 
       - name: Run ConflictSolver and KEE integration tests
-        run: python -m pytest tests/test_conflict_solver.py tests/test_knowledge_evolution_conflict_integration.py tests/test_iec_contract_roundtrip.py tests/test_knowledge_evolution_persistence_sinks.py tests/test_epistemic_persistence_recovery.py tests/test_kee_persistence_recovery.py tests/test_request_persistence_context.py tests/test_epistemic_endpoint.py tests/test_epistemic_neutral_relation.py tests/test_auth_middleware.py -q
+        run: python -m pytest tests/test_conflict_solver.py tests/test_knowledge_evolution_conflict_integration.py tests/test_iec_contract_roundtrip.py tests/test_knowledge_evolution_persistence_sinks.py tests/test_epistemic_persistence_recovery.py tests/test_kee_persistence_recovery.py tests/test_request_persistence_context.py tests/test_epistemic_endpoint.py tests/test_epistemic_neutral_relation.py tests/test_auth_middleware.py tests/test_index_auth_contract.py -q
