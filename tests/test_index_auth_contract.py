@@ -137,3 +137,23 @@ def test_project_selector_contains_all_expected_project_choices():
     for placeholder in ("Em construção", "Ativo · bakuchiol + resveratrol"):
         assert placeholder in selector
 
+def test_enter_project_button_has_explicit_listener_and_visible_error_feedback():
+    assert '<button class="ob-btn-primary" id="ob-enter-btn" type="button" disabled>Entrar no projeto</button>' in HTML
+    assert 'onclick="obEnterProject()"' not in HTML
+    assert "button.addEventListener('click', async function(event)" in HTML
+    assert "window.obEnterProject()" in HTML
+    assert 'id="ob-project-entry-status" role="status" aria-live="polite"' in HTML
+    assert "button.textContent = 'Tentar entrar novamente'" in HTML
+
+
+def test_enter_project_awaits_auth_then_reveals_kalatrace_app():
+    start = HTML.index("async function obEnterProject()")
+    end = HTML.index("</script>", start)
+    flow = HTML[start:end]
+    assert flow.index("window.KT_AUTH_CONTINUE=obEnterProject") < flow.index("ktEnsureAuth")
+    assert "if(!(await ktEnsureAuth())) return false;" in flow
+    assert "ktSelectProject(window.KT_SELECTED_PROJECT||'medikalat')" in flow
+    assert "await new Promise(resolve=>window.setTimeout(resolve,480))" in flow
+    assert "app.style.display=''" in flow
+    assert "return true;" in flow
+
