@@ -57,7 +57,7 @@ def test_splash_transition_is_independent_of_auth_bootstrap():
     fallback_start = HTML.index('<script id="kt-splash-fallback">')
     workspace_start = HTML.index("<!-- 3. WORKSPACE -->")
     app_bootstrap_start = HTML.index("const forms=[")
-    auth_binding_start = HTML.index("document.getElementById('kt-auth-form').addEventListener")
+    auth_binding_start = HTML.index("const authForm = document.getElementById('kt-auth-form')")
 
     fallback = HTML[fallback_start:workspace_start]
     assert fallback_start < workspace_start < app_bootstrap_start < auth_binding_start
