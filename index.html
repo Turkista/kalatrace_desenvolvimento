@@ -674,8 +674,11 @@ async function ktLogin(event){
     ktSetAuthIdentity(user);
     ktCloseAuth();
     await ktRefreshBackendStatus();
-    // Retoma o fluxo atual; o token é verificado novamente antes de abrir o projeto.
-    await obEnterProject();
+    // Retoma o passo que solicitou autenticação; se não houver um, abre o projeto padrão.
+    const resume=window.KT_AUTH_CONTINUE;
+    window.KT_AUTH_CONTINUE=null;
+    if(typeof resume==='function')await resume();
+    else await obEnterProject();
   }catch(e){
     if(e.status===400||e.status===401){
       msg.textContent='Não foi possível entrar. Confira o e-mail, a senha e se o e-mail da conta está confirmado.';
@@ -783,6 +786,7 @@ document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=
 document.getElementById('kt-auth-form').addEventListener('submit',ktLogin);
 document.getElementById('kt-auth-cancel').onclick=ktCloseAuth;
 document.getElementById('kt-auth-toggle-password').onclick=ktTogglePassword;
+window.KT_AUTH_CONTINUE=null;
 window.KT_PROJECTS=[];window.KT_ACTIVE_PROJECT='medikalat';window.KT_ACTIVE_PROJECT_ID=null;window.KT_ACTIVE_PROJECT_META={};
 async function ktLoadProjects(){try{const d=await ktApi('/projects');window.KT_PROJECTS=d.projects||[];return window.KT_PROJECTS}catch(e){return []}}
 function ktSelectProject(slug){const p=window.KT_PROJECTS.find(x=>x.slug===slug)||{slug:slug,name:slug,domain:'KALATRACE'};window.KT_ACTIVE_PROJECT=p.slug;window.KT_ACTIVE_PROJECT_ID=p.id||null;window.KT_ACTIVE_PROJECT_META=p;const n=document.getElementById('active-project-name');if(n)n.textContent=p.name;const d=document.getElementById('active-project-domain');if(d)d.textContent=p.domain||'KALATRACE';document.querySelectorAll('.project-only').forEach(x=>x.style.display='none');if(p.slug==='robotica')document.querySelectorAll('.project-robotica').forEach(x=>x.style.display='flex');if(p.slug==='agente-local')document.querySelectorAll('.project-agent').forEach(x=>x.style.display='flex');const med=document.querySelector('[data-screen="medikalat"]');if(med)med.style.display=p.slug==='medikalat'?'flex':'none';if(p.slug==='robotica')showScreen('robotica');else if(p.slug==='agente-local')showScreen('agente-local');else showScreen('hub');}
@@ -799,8 +803,14 @@ function obFade(hideId, showId, cb){
 // 1 -> 2 : splash auto-advances
 setTimeout(function(){ obFade('ob-splash','ob-welcome'); }, 2200);
 
-// 2 -> 3
-function obGoWorkspace(){ obFade('ob-welcome','ob-workspace'); }
+// 2 -> 3 — autenticação antes de exibir os ambientes do workspace.
+async function obGoWorkspace(){
+  if(!(await ktEnsureAuth())){
+    window.KT_AUTH_CONTINUE=obGoWorkspace;
+    return;
+  }
+  obFade('ob-welcome','ob-workspace');
+}
 
 // 3 -> 4
 function obOpenProject(name){
@@ -835,7 +845,10 @@ function obRunProjectChecks(){
 
 // 4 -> app
 async function obEnterProject(){
-  if(!(await ktEnsureAuth())) return;
+  if(!(await ktEnsureAuth())){
+    window.KT_AUTH_CONTINUE=obEnterProject;
+    return;
+  }
   await ktLoadProjects();
   ktSelectProject(window.KT_SELECTED_PROJECT||'medikalat');
   document.getElementById('ob-projload').classList.add('hide');
