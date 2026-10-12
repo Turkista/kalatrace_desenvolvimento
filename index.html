@@ -699,6 +699,7 @@ function ktTogglePassword(){
   const visible=input.type==='password';
   input.type=visible?'text':'password';
   button.textContent=visible?'Ocultar':'Mostrar';
+  button.setAttribute('aria-label',visible?'Ocultar senha':'Mostrar senha');
   button.setAttribute('aria-pressed',String(visible));
 }
 document.getElementById('kt-auth-form').addEventListener('submit',ktLogin);
