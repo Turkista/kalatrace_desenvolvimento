@@ -37,13 +37,16 @@ def test_auth_handlers_are_bound_after_modal_markup_exists():
     assert handler_position > modal_position
     assert "authForm.addEventListener('submit', window.ktLogin)" in HTML
 
-def test_workspace_requires_authentication_before_project_selection():
-    start = HTML.index("async function obGoWorkspace()")
-    end = HTML.index("// 3 -> 4", start)
-    workspace_flow = HTML[start:end]
-    assert "if(!(await ktEnsureAuth()))" in workspace_flow
-    assert "window.KT_AUTH_CONTINUE=obGoWorkspace" in workspace_flow
-    assert workspace_flow.index("ktEnsureAuth") < workspace_flow.index("obFade")
+def test_project_selection_precedes_authentication_and_entering_project_is_guarded():
+    workspace_start = HTML.index('id="ob-workspace"')
+    project_card = HTML.index("onclick=\"obOpenProject('MEDIKALAT')\"", workspace_start)
+    assert workspace_start < project_card
+    start = HTML.index("async function obEnterProject()")
+    end = HTML.index("</script>", start)
+    entry_flow = HTML[start:end]
+    assert "if(!(await ktEnsureAuth()))" in entry_flow
+    assert "window.KT_AUTH_CONTINUE=obEnterProject" in entry_flow
+    assert entry_flow.index("ktEnsureAuth") < entry_flow.index("await ktLoadProjects()")
     assert "const resume=window.KT_AUTH_CONTINUE" in HTML
 
 
@@ -66,24 +69,26 @@ def test_splash_transition_is_independent_of_auth_bootstrap():
     assert "welcome.hidden = false" in fallback
     assert "setTimeout(function(){ obFade('ob-splash','ob-welcome'); }, 2200)" not in HTML
 
-def test_platform_entry_button_opens_auth_without_waiting_for_api():
-    assert 'id="ob-enter-platform-btn" type="button" onclick="window.ktShowLoginFromWelcome(); return false;"' in HTML
+def test_platform_entry_button_opens_project_selector_without_auth_or_inline_global_handler():
+    assert '<button class="ob-btn-primary" id="ob-enter-platform-btn" type="button">Entrar na plataforma</button>' in HTML
+    assert 'onclick="window.ktShowLoginFromWelcome()' not in HTML
     fallback_start = HTML.index('<script id="kt-splash-fallback">')
     fallback_end = HTML.index("</script>", fallback_start)
     fallback = HTML[fallback_start:fallback_end]
-    assert "window.ktShowLoginFromWelcome = function ()" in fallback
-    assert "modal.style.setProperty('display', 'flex', 'important')" in fallback
-    assert "modal.style.setProperty('z-index', '2147483647', 'important')" in fallback
-    assert "window.KT_AUTH_CONTINUE = function ()" in fallback
-    assert "showLogin('Entre com sua conta KALATRACE para continuar.')" in fallback
+    assert "window.ktShowProjectsFromWelcome = function ()" in fallback
+    assert "entryButton.addEventListener('click'" in fallback
+    assert "welcome.classList.add('hide')" in fallback
+    assert "workspace.hidden = false" in fallback
+    assert "window.ktOpenAuth" not in fallback
     assert '<script id="kt-platform-entry-handler">' not in HTML
 
 
-def test_workspace_registers_login_continuation_before_auth_check():
+def test_workspace_transition_displays_project_picker_without_login_gate():
     start = HTML.index("async function obGoWorkspace()")
     end = HTML.index("// 3 -> 4", start)
     flow = HTML[start:end]
-    assert flow.index("window.KT_AUTH_CONTINUE=obGoWorkspace") < flow.index("ktEnsureAuth")
+    assert "obFade('ob-welcome','ob-workspace')" in flow
+    assert "ktEnsureAuth" not in flow
 
 
 def test_cross_script_handlers_are_exported_explicitly_before_boot():
@@ -122,4 +127,13 @@ def test_favicon_uses_an_asset_inside_the_github_pages_project_path():
 def test_tabler_icons_stylesheet_uses_official_jsdelivr_package_path():
     assert 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.49.0/dist/tabler-icons.min.css' in HTML
     assert 'cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css' not in HTML
+
+def test_project_selector_contains_all_expected_project_choices():
+    selector_start = HTML.index('id="ob-workspace"')
+    selector_end = HTML.index("<!-- 4. PROJECT LOADING -->", selector_start)
+    selector = HTML[selector_start:selector_end]
+    for project in ("MEDIKALAT", "SkinMap", "YANSIX", "Turkista", "Robótica", "Agente Local", "Novo projeto"):
+        assert project in selector
+    for placeholder in ("Em construção", "Ativo · bakuchiol + resveratrol"):
+        assert placeholder in selector
 
