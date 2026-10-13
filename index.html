@@ -168,6 +168,31 @@
 <script id="kt-auth-bootstrap-fallback">
 /* Auth safety net: keep the login operable even if the larger UI boot script fails. */
 (function () {
+  /* Keep navigation callable even if the main UI bootstrap fails before its handler is registered. */
+  if (typeof window.showScreen !== 'function') {
+    window.showScreen = function (id) {
+      var target = document.getElementById('screen-' + id);
+      if (!target) {
+        console.error('[KALATRACE] Tela não encontrada:', id);
+        return false;
+      }
+      document.querySelectorAll('.nav-item').forEach(function (item) {
+        item.classList.toggle('active', item.dataset.screen === id);
+      });
+      document.querySelectorAll('.screen').forEach(function (screen) {
+        screen.classList.toggle('active', screen === target);
+      });
+      var content = document.querySelector('.content');
+      if (content) content.scrollTop = 0;
+      var sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.remove('open');
+      if (id === 'infraestrutura') {
+        if (typeof window.ktInfrastructureRefresh === 'function') window.ktInfrastructureRefresh();
+        if (typeof window.ktWatchdogRefresh === 'function') window.ktWatchdogRefresh();
+      }
+      return true;
+    };
+  }
   function apiBase() {
     return String(window.KT_API_BASE || window.KALATRACE_API_BASE ||
       'https://kalatrace-desenvolvimento.onrender.com').replace(/\/$/, '');
