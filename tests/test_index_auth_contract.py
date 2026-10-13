@@ -204,3 +204,23 @@ def test_login_page_uses_same_origin_session_and_continue_flag():
     assert "new URL('index.html',window.location.href)" in LOGIN_HTML
     assert "params.get('continue')" in LOGIN_HTML
     assert "enterProject" in LOGIN_HTML
+
+def test_return_from_login_skips_parallel_bootstrap_auth_validation():
+    bootstrap_start = HTML.index("const ktResumeRequested=new URLSearchParams(window.location.search).has('enterProject');")
+    bootstrap_end = HTML.index("const graphScreen=document.getElementById('screen-grafo');", bootstrap_start)
+    bootstrap = HTML[bootstrap_start:bootstrap_end]
+
+    assert "if(!ktResumeRequested)" in bootstrap
+    assert "window.ktSetAuthIdentity(null)" in bootstrap
+    assert bootstrap.index("if(!ktResumeRequested)") < bootstrap.index("window.ktSetAuthIdentity(null)")
+    assert "The resume handler below owns session validation" in bootstrap
+
+
+def test_project_resume_does_not_clear_session_on_temporary_api_failure():
+    start = HTML.index("async function obEnterProject(){")
+    end = HTML.index("</script>", start)
+    flow = HTML[start:end]
+
+    assert "if(error&&(error.status===401||error.status===403))" in flow
+    assert "else{\n      throw error;\n    }" in flow
+    assert "if(!authenticated)" in flow
