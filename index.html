@@ -1203,8 +1203,14 @@ async function obEnterProject(){
       authenticated=true;
     }
   }catch(error){
-    try{sessionStorage.removeItem('kalatrace_access_token')}catch(_){}
-    if(typeof window.ktSetAuthIdentity==='function')window.ktSetAuthIdentity(null);
+    // Preserve the session on temporary API/network failures; only confirmed
+    // authentication rejection should invalidate the access token.
+    if(error&&(error.status===401||error.status===403)){
+      try{sessionStorage.removeItem('kalatrace_access_token')}catch(_){}
+      if(typeof window.ktSetAuthIdentity==='function')window.ktSetAuthIdentity(null);
+    }else{
+      throw error;
+    }
   }
   if(!authenticated){
     window.KT_AUTH_CONTINUE=null;
@@ -1229,17 +1235,27 @@ async function obEnterProject(){
 }
 </script>
 <script>
+const ktResumeRequested=new URLSearchParams(window.location.search).has('enterProject');
 (async function(){
-  window.ktSetAuthIdentity(null);
-  if(window.ktToken()){
-    try{
-      const user=await window.ktApi('/auth/me');
-      window.ktSetAuthIdentity(user);
-      await window.ktLoadProjects();
-      await window.ktRefreshBackendStatus();
-    }catch(e){
-      sessionStorage.removeItem('kalatrace_access_token');
-      window.ktSetAuthIdentity(null);
+  // The resume handler below owns session validation when returning from login.
+  // Avoid a parallel /auth/me request that could clear sessionStorage during the
+  // handoff if one of two overlapping requests fails transiently.
+  if(!ktResumeRequested){
+    window.ktSetAuthIdentity(null);
+    if(window.ktToken()){
+      try{
+        const user=await window.ktApi('/auth/me');
+        window.ktSetAuthIdentity(user);
+        await window.ktLoadProjects();
+        await window.ktRefreshBackendStatus();
+      }catch(e){
+        if(e&&(e.status===401||e.status===403)){
+          sessionStorage.removeItem('kalatrace_access_token');
+          window.ktSetAuthIdentity(null);
+        }else{
+          console.error('[KALATRACE] Não foi possível validar a sessão no início da página.',e);
+        }
+      }
     }
   }
   const graphScreen=document.getElementById('screen-grafo');
