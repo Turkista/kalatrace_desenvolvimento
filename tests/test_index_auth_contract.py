@@ -185,8 +185,8 @@ def test_primary_auth_modal_is_forced_visible_above_onboarding():
     assert "modal.hidden=true;" in opener
     assert 'dialog id="kt-auth-modal"' in HTML
     assert '#kt-auth-modal[open]{display:flex!important}' in HTML
-    assert "(modal.open || modal.hasAttribute('open'))" in HTML
-    assert "window.getComputedStyle(modal).display !== 'none'" in HTML
+    assert "function obRedirectToLogin(projectSlug)" in HTML
+    assert "window.location.assign(loginUrl.href)" in HTML
 
 def test_enter_project_uses_standalone_login_instead_of_modal_prompt():
     start = HTML.index("function obRedirectToLogin(projectSlug)")
