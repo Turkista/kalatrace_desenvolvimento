@@ -834,7 +834,7 @@ window.saveDemo = saveDemo;
 window.ktLoadResearchForms = ktLoadResearchForms;
 window.ktRefreshBackendStatus = ktRefreshBackendStatus;
 window.clearForm = clearForm;
-window.showScreen = showScreen;
+/* Export showScreen after its declaration in the navigation script. */
 const forms=[
 {id:'lote',label:'Caracterização de lote',stage:'Qualquer etapa',title:'Ficha de caracterização de lote (IFA)',fields:[['Responsável pelo preenchimento','text'],['Etapa do programa','select',['Mestrado','Doutorado Ano 1-2','Doutorado Ano 3-4','Pós-Doutorado']],['Ativo','select',['Bakuchiol','Resveratrol','Combinação Bakuchiol+Resveratrol']],['Número do lote','text'],['Fornecedor','text'],['Data de recebimento','date'],['Validade','date'],['Pureza (%)','number'],['Método analítico usado','text'],['Condição de armazenamento','text'],['Observações','textarea']]},
 {id:'dose',label:'Curva dose-resposta',stage:'Mestrado',title:'Protocolo de curva dose-resposta (EC50 / NOAEL)',custom:'dose'},
@@ -1021,6 +1021,7 @@ async function ktRefreshBackendStatus(){
 }
 function clearForm(btn){btn.closest('.form-card').querySelectorAll('input,select,textarea').forEach(x=>x.value='')}
 function showScreen(id){document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.screen===id));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');document.querySelector('.content').scrollTop=0;document.getElementById('sidebar').classList.remove('open');if(id==='infraestrutura'){ktInfrastructureRefresh();ktWatchdogRefresh()}}
+window.showScreen = showScreen;
 document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>showScreen(n.dataset.screen)));document.getElementById('menuBtn').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
 </script>
 <dialog id="kt-auth-modal" aria-modal="true" aria-labelledby="kt-auth-title">
