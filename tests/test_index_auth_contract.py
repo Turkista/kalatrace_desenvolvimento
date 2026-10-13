@@ -199,6 +199,19 @@ def test_enter_project_uses_standalone_login_instead_of_modal_prompt():
     assert "Entre com sua conta KALATRACE na janela de autenticação para continuar." not in HTML
 
 
+
+def test_project_selector_uses_exported_screen_navigation_across_scripts():
+    start = HTML.index("function ktSelectProject(slug)")
+    end = HTML.index("function obFade(", start)
+    selector = HTML[start:end]
+
+    assert "typeof window.showScreen!=='function'" in selector
+    assert "window.showScreen('hub')" in selector
+    assert "window.showScreen('robotica')" in selector
+    assert "window.showScreen('agente-local')" in selector
+    assert "else showScreen(" not in selector
+
+
 def test_login_page_uses_same_origin_session_and_continue_flag():
     assert "window.location.replace(nextUrl.href)" in LOGIN_HTML
     assert "new URL('index.html',window.location.href)" in LOGIN_HTML
