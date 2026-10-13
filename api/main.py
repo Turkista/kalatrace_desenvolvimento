@@ -196,6 +196,7 @@ from core.security.security_manager import SecurityManager
 # INTEGRATIONS
 # ==========================================================
 
+from integrations.cors import get_cors_origins
 from integrations.supabase import SupabaseClient, SupabaseError
 from integrations.auth import install_auth_middleware, user_is_allowed
 from core.persistence.request_context import (
@@ -238,14 +239,7 @@ install_auth_middleware(
 # CORS
 # ==========================================================
 
-_cors_origins = [
-    origin.strip()
-    for origin in os.getenv(
-        "KALATRACE_CORS_ORIGINS",
-        "http://127.0.0.1:5500,http://localhost:5500",
-    ).split(",")
-    if origin.strip()
-]
+_cors_origins = get_cors_origins()
 
 app.add_middleware(
     CORSMiddleware,
