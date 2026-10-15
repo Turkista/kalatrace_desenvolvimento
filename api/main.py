@@ -1453,10 +1453,7 @@ def get_neo4j_health():
     except Exception as exc:
         raise HTTPException(
             status_code=503,
-            detail=(
-                "Neo4j connection failed: "
-                f"{exc}"
-            ),
+            detail="Neo4j connection failed.",
         ) from exc
 
 
@@ -1539,10 +1536,7 @@ def get_neo4j_stats():
     except Exception as exc:
         raise HTTPException(
             status_code=503,
-            detail=(
-                "Falha ao consultar estatísticas "
-                f"do Neo4j: {exc}"
-            ),
+            detail="Falha ao consultar estatísticas do Neo4j.",
         ) from exc
 
 
@@ -1602,10 +1596,7 @@ def get_neo4j_graph():
     except Exception as exc:
         raise HTTPException(
             status_code=503,
-            detail=(
-                "Falha ao consultar o Knowledge Graph "
-                f"no Neo4j: {exc}"
-            ),
+            detail="Falha ao consultar o Knowledge Graph no Neo4j.",
         ) from exc
 
 
@@ -2153,11 +2144,14 @@ class EvidenceConfidenceIn(BaseModel):
 
 
 def _hydrate_iec_from_supabase(request: Request, iec_id: str) -> Any:
-    """Reconstrói uma IEC persistida quando ela não está no grafo local."""
-    iec = graph.get_node(iec_id)
-    if iec is not None:
-        return iec
+    """Resolve uma IEC sob o token do usuário atual, sem consultar cache global.
 
+    O grafo em memória é compartilhado pelo processo da API. Ele não pode ser
+    usado como fonte de autorização para IECs, pois uma entrada em cache poderia
+    ter sido criada por outra sessão. A consulta Supabase aplica RLS ao token
+    desta requisição; a IEC retornada fica local à operação e não é adicionada
+    ao grafo global.
+    """
     try:
         rows = supabase_client.get_iec(
             request.state.access_token,
@@ -2177,7 +2171,7 @@ def _hydrate_iec_from_supabase(request: Request, iec_id: str) -> Any:
     result = row.get("result") or {}
     statement = row.get("statement") or ""
 
-    restored = SimpleNamespace(
+    return SimpleNamespace(
         id=row.get("id") or iec_id,
         title=row.get("name") or iec_id,
         content=statement,
@@ -2189,8 +2183,6 @@ def _hydrate_iec_from_supabase(request: Request, iec_id: str) -> Any:
         evidence_ids=result.get("evidence_ids", []) or [],
         metadata=result.get("metadata", {}) or {},
     )
-    graph.add_node(restored)
-    return restored
 
 
 def _hydrate_evidence_store_from_supabase(request: Request) -> Dict[str, int]:
