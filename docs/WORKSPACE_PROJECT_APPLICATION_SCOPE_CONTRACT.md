@@ -8,7 +8,7 @@
 ## 1. Decisões de arquitetura que devem permanecer invariáveis
 
 - **KALATRACE Control** é a infraestrutura de controle; não é um projeto de domínio.
-- **Workspace** representa o contexto de identidade, membros, papéis e permissões. A implementação atual de `/workspace/me` monta um objeto de resposta a partir do usuário autenticado; isso não prova a existência de um Workspace persistido nem de `workspace_id`.
+- **Workspace** representa o contexto de identidade, membros, papéis e permissões. O schema já possui `workspace_profiles` (perfil por usuário) e `project_memberships` (associação usuário↔projeto), além de RLS e helpers de autorização. Porém, nas migrations examinadas, não identifiquei uma entidade Workspace multi-tenant com `workspace_id` propagado por Projects e dados de domínio. `/workspace/me` ainda monta uma resposta de perfil e papel simplificada; não resolve um Workspace ativo nem o contexto ativo de Project/Application.
 - **Project** é uma unidade persistente de trabalho. Já existem endpoints/tabelas para projetos e vários contratos usam `project_id`.
 - **Application** é uma aplicação registrada que pode ser disponibilizada dentro de um Project; MEDIKALAT, SkinMap, YANSIX, Turkista, Robótica e Agente Local não devem ser codificados como regras dispersas de autorização.
 - **IEC ≠ KnowledgeNode**. A IEC é a unidade epistemológica/transacional; KnowledgeNode é a entidade estrutural projetada no Knowledge Graph. A relação explícita continua sendo `(:IEC)-[:REPRESENTS]->(:KnowledgeNode)`.
@@ -72,7 +72,7 @@ Nota: a assinatura sem `Request` não significa que a rota esteja pública — o
 
 ## 5. Sequência de implementação segura
 
-1. **Contrato e inventário:** validar este documento com o esquema real de Workspace/memberships/Projects/Applications e as políticas RLS existentes. Não presumir tabelas ou colunas que ainda não existem.
+1. **Contrato e inventário:** o schema já tem `workspace_profiles`, `projects`, `project_memberships` e políticas RLS. Confirmar se o produto precisa de Workspace multi-tenant real (com `workspace_id`) ou se o perfil atual de usuário + memberships por Project é o contrato intencional. Não adicionar `workspace_id` até essa decisão ser refletida nas relações e políticas RLS existentes.
 2. **Persistência e autorização:** identificar migrations e métodos do cliente Supabase para Project membership; fechar leitura/escrita cross-project com testes RLS. Criar Workspace persistido somente depois de decidir como migrar os usuários/projetos atuais.
 3. **Contexto explícito:** introduzir um resolvedor de contexto por requisição; exigir Project UUID para rotas de domínio que precisam de escopo. Manter rotas estáticas de metadata/workflow separadas.
 4. **Estado em memória:** alterar primeiro uma fatia vertical (IEC + evidências + consulta de grafo), com fábrica/registro scoped e reconstrução de dados autorizados; não mudar todos os engines num único patch.
@@ -84,7 +84,7 @@ Nota: a assinatura sem `Request` não significa que a rota esteja pública — o
 
 ## 6. Critérios de aceite
 
-- [ ] Workspace persistido e memberships documentados; sem fingir que `/workspace/me` já os implementa.
+- [ ] Decisão explícita entre perfil por usuário existente (`workspace_profiles` + `project_memberships`) e Workspace multi-tenant persistido com `workspace_id`; `/workspace/me` não deve ser tratado como contexto ativo resolvido.
 - [ ] Project UUID validado pelo servidor em cada operação de domínio.
 - [ ] Application Registry/Binding/Configuration definido antes de remover hardcodes de frontend.
 - [ ] Nenhum estado mutável de domínio é global sem escopo declarado.
