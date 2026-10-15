@@ -26,6 +26,10 @@ A revisão percorre a interface publicada em GitHub Pages, a API FastAPI, middle
 - `_hydrate_iec_from_supabase` não consulta nem preenche o grafo global em memória. Cada leitura de IEC passa pelo Supabase usando o token da requisição, permitindo que RLS decida se a IEC é visível à sessão.
 - Foram adicionados testes de regressão para autenticação das rotas operacionais, isolamento da consulta de IEC e sanitização da resposta de conectividade.
 
+## Contrato da próxima rodada
+
+O contrato de escopo e a sequência de implementação estão documentados em [`docs/WORKSPACE_PROJECT_APPLICATION_SCOPE_CONTRACT.md`](docs/WORKSPACE_PROJECT_APPLICATION_SCOPE_CONTRACT.md). Ele preserva KALATRACE Control separado de Workspace/Projects/Applications, exige Project UUID validado pelo servidor, mantém IEC distinta de KnowledgeNode e define a ordem segura para isolar estado em memória e Neo4j. É um contrato de implementação proposto, não uma afirmação de que Workspace persistido ou isolamento multiusuário já estejam ativos.
+
 ## Riscos residuais que exigem uma rodada própria
 
 ### Alto — estado cognitivo e grafo em memória compartilhados pelo processo
