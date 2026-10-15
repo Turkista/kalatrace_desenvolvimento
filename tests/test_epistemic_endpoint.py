@@ -172,3 +172,31 @@ def test_epistemic_http_route_serializes_unknown_iec_as_404(monkeypatch):
 
     assert response.status_code == 404
     assert response.json()["detail"] == f"IEC não encontrada: {IEC_ID}"
+
+
+
+def test_iec_hydration_does_not_trust_shared_graph_cache(monkeypatch):
+    cached_private_iec = SimpleNamespace(
+        id=IEC_ID,
+        title="IEC privada de outra sessão",
+        statement="Conteúdo que não pode ser reutilizado sem RLS.",
+    )
+    calls = []
+
+    class SharedGraph:
+        def get_node(self, iec_id):
+            return cached_private_iec
+
+        def add_node(self, node):
+            raise AssertionError("IEC autenticada não deve ser gravada no grafo global")
+
+    def get_iec(access_token, iec_id):
+        calls.append((access_token, iec_id))
+        return []
+
+    monkeypatch.setattr(api_main, "graph", SharedGraph())
+    monkeypatch.setattr(api_main.supabase_client, "get_iec", get_iec)
+    request = SimpleNamespace(state=SimpleNamespace(access_token="token-user-b"))
+
+    assert api_main._hydrate_iec_from_supabase(request, IEC_ID) is None
+    assert calls == [("token-user-b", IEC_ID)]
