@@ -3,7 +3,7 @@
 Base: `api/main.py` e router `api/research_forms.py` na branch `audit/epistemic-isolation-neo4j-hardening`.
 Este documento é um inventário estático de decoradores. Rotas automáticas do FastAPI (`/openapi.json`, `/docs`, `/redoc`) não aparecem nos decoradores e podem depender da configuração do app. O middleware de autenticação verifica o caminho completo contra `PUBLIC_PATHS`; as demais rotas exigem token válido quando `KALATRACE_AUTH_REQUIRED=true`.
 
-**Contagem estática:** 123 rotas declaradas nos dois arquivos (método + caminho + handler). Rotas dinâmicas são templates, por exemplo `/agent/tasks/{task_id}`.
+**Contagem estática:** 124 rotas declaradas nos dois arquivos (método + caminho + handler). Rotas dinâmicas são templates, por exemplo `/agent/tasks/{task_id}`.
 
 **Rotas públicas após a alteração desta branch:** `/health`, `/docs`, `/redoc`, `/openapi.json`, `/auth/signup`, `/auth/login`. Os endpoints de saúde e estatísticas do Neo4j não estão na lista pública.
 
@@ -215,6 +215,7 @@ Este documento é um inventário estático de decoradores. Rotas automáticas do
 | DELETE | `/security/modules/{module_name}/trust` | `untrust_module` |
 | POST | `/security/modules/{module_name}/trust` | `trust_module` |
 | GET | `/security/modules/{module_name}/trusted` | `is_module_trusted` |
+| DELETE | `/security/modules/{module_name}/permissions/{permission}` | `revoke_module_permission` |
 
 ## /validation
 
