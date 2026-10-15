@@ -405,6 +405,57 @@ evidence_validator = EvidenceValidationEngine(
 )
 
 
+def require_project_access(request: Request, project_id: str) -> Dict[str, Any]:
+    """Confirma acesso ao projeto via RLS e membership do usuário atual.
+
+    A consulta usa o access token da sessão; não usa service role nem confia
+    apenas no project_id informado pelo cliente.
+    """
+    if not project_id or not str(project_id).strip():
+        raise HTTPException(status_code=400, detail="project_id é obrigatório.")
+
+    token = getattr(request.state, "access_token", None)
+    user = getattr(request.state, "user", None) or {}
+    user_id = str(user.get("id") or "")
+    if not token or not user_id:
+        raise HTTPException(status_code=401, detail="Autenticação necessária.")
+
+    try:
+        projects = supabase_client.select(
+            "projects",
+            token,
+            select="id,owner_id",
+            filters={"id": f"eq.{project_id}", "limit": "1"},
+        )
+        if not isinstance(projects, list) or not projects:
+            # 404 evita revelar a existência de projetos sem acesso.
+            raise HTTPException(status_code=404, detail="Projeto não encontrado.")
+
+        project = projects[0]
+        if str(project.get("owner_id") or "") == user_id:
+            return project
+
+        memberships = supabase_client.select(
+            "project_memberships",
+            token,
+            select="project_id,user_id,role",
+            filters={
+                "project_id": f"eq.{project_id}",
+                "user_id": f"eq.{user_id}",
+                "limit": "1",
+            },
+        )
+        if not isinstance(memberships, list) or not memberships:
+            raise HTTPException(status_code=404, detail="Projeto não encontrado.")
+
+        return {**project, "membership": memberships[0]}
+    except SupabaseError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail="Não foi possível validar o acesso ao projeto.",
+        ) from exc
+
+
 class CmcMissionPersistIn(BaseModel):
     project_id: Optional[str] = None
     name: str
@@ -420,6 +471,8 @@ class CmcMissionPersistIn(BaseModel):
 
 @app.post("/cmc/persistent/missions")
 def persist_cmc_mission(payload: CmcMissionPersistIn, request: Request):
+    if payload.project_id:
+        require_project_access(request, payload.project_id)
     try:
         result = supabase_client.create_cmc_mission(request.state.access_token, request.state.user["id"], payload.model_dump())
         return {"status":"created","mission":result[0] if isinstance(result,list) and result else result}
@@ -427,6 +480,8 @@ def persist_cmc_mission(payload: CmcMissionPersistIn, request: Request):
 
 @app.get("/cmc/persistent/missions")
 def list_persistent_cmc_missions(request: Request, project_id: Optional[str] = None, limit: int = 100):
+    if project_id:
+        require_project_access(request, project_id)
     try: return {"missions": supabase_client.list_cmc_missions(request.state.access_token, project_id, limit)}
     except SupabaseError as exc: raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
