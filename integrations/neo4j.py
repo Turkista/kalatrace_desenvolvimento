@@ -140,8 +140,6 @@ class Neo4jClient:
                 record and record["ok"] == 1
             ),
             "database": self.settings.database,
-            "uri": self.settings.uri,
-            "username": self.settings.username,
         }
 
     def execute(
