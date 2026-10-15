@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
-from integrations.auth import install_auth_middleware
+from integrations.auth import PUBLIC_PATHS, install_auth_middleware
 from integrations.supabase import SupabaseError
 
 
@@ -29,6 +29,15 @@ class FakeSupabaseClient:
 def make_app(client):
     app = FastAPI()
     install_auth_middleware(app, client)
+
+
+    @app.get("/neo4j/health")
+    def neo4j_health():
+        return {"connected": True}
+
+    @app.get("/neo4j/stats")
+    def neo4j_stats():
+        return {"nodes": 1}
 
     @app.get("/private")
     def private_route(request: Request):
@@ -87,3 +96,14 @@ def test_private_route_rejects_verified_user_outside_allowlist(monkeypatch):
 
     assert response.status_code == 403
     assert response.json()["code"] == "USER_NOT_ALLOWED"
+
+
+def test_neo4j_operational_routes_are_not_public():
+    assert "/neo4j/health" not in PUBLIC_PATHS
+    assert "/neo4j/stats" not in PUBLIC_PATHS
+
+    client = TestClient(make_app(FakeSupabaseClient()))
+    for path in ("/neo4j/health", "/neo4j/stats"):
+        response = client.get(path)
+        assert response.status_code == 401
+        assert response.json()["code"] == "AUTH_REQUIRED"
