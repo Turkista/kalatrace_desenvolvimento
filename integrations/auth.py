@@ -15,8 +15,6 @@ from core.persistence.request_context import (
 
 PUBLIC_PATHS = {
     "/health",
-    "/neo4j/health",
-    "/neo4j/stats",
     "/docs",
     "/redoc",
     "/openapi.json",
