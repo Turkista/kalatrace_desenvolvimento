@@ -2,7 +2,7 @@
 
 **Data:** 15/10/2026  
 **Repositório:** `Turkista/kalatrace_desenvolvimento`  
-**Base analisada:** `main`, commit `4fdabb59c05a160e3fc8b9f3c24945e17c78d549)  
+**Base analisada:** `main`, commit `4fdabb59c05a160e3fc8b9f3c24945e17c78d549`  
 **Branch de trabalho:** `audit/epistemic-isolation-neo4j-hardening`
 
 ## Escopo
